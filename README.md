@@ -22,11 +22,15 @@ The methods of interpolation are ***linear***, ***cubic*** or ***nearest***, the
 
 ## Assumptions
 
+   * **Excel Input File:** The name of the input Excel file must be ***known_settlement_values.xlsx***. The sheet with the values must have the same name. These are hardcoded into the script.
+
    * **Excel Input File:** *Only* yellow cells may be changed.
    
    * **Excel Input File:** Yellow cells must retain their exact cell numbers as these are hardcoded inside the script. Thus, the user must refrain from creating new rows or columns.     
    
    * **Excel Input File:** All cells that are not yellow are not used or read by the script. Thus, these can hold any information, notes etc. that the user desires. 
+   
+   * **Excel Output File:** The name of the Excel output file from SOFiSTiK must be ***settlement_nodes.xlsx.***.
    
    * **SOFiSTiK:** Nodes that are to receive an imposed displacement must be filtered inside SOFiSTiK and output to an Excel file called ***<?????>.xlsx***. Every node accounted for in this Excel file gets an imposed displacement applied to it.
    
@@ -37,4 +41,4 @@ The methods of interpolation are ***linear***, ***cubic*** or ***nearest***, the
 
 * Only four load combinations are supported (Although the code could easily be adjusted to support more). 
 
-* 
+* There is not a lot of input parameters to the script. 
