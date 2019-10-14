@@ -110,8 +110,10 @@ ENV/
 # Text files
 .csv
 .txt
+.dat
 
 # Excel files that do not have prescribed names
 *.xlsx
+*.xlsm
 !settlement_nodes.xlsx
 !known_settlement_values.xlsx
