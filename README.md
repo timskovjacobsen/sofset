@@ -29,10 +29,8 @@ The methods of interpolation are ***linear***, ***cubic*** or ***nearest***, the
    * **Excel Input File:** Yellow cells must retain their exact cell numbers as these are hardcoded inside the script. Thus, the user must refrain from creating new rows or columns.     
    
    * **Excel Input File:** All cells that are not yellow are not used or read by the script. Thus, these can hold any information, notes etc. that the user desires. 
-   
-   * **Excel Output File:** The name of the Excel output file from SOFiSTiK must be ***settlement_nodes.xlsx.***.
-   
-   * **SOFiSTiK:** Nodes that are to receive an imposed displacement must be filtered inside SOFiSTiK and output to an Excel file called ***<?????>.xlsx***. Every node accounted for in this Excel file gets an imposed displacement applied to it.
+      
+   * **SOFiSTiK:** Nodes that are to receive an imposed displacement must be filtered inside SOFiSTiK and output to an Excel file called ***settlement_nodes.xlsx***. Every node accounted for in this Excel file gets an imposed displacement applied to it.
    
    * **SOFiSTiK:** All imposed displacements are applied at nodes in the z-direction according to the local coordinate system of the element that the node is tied to.  
 
