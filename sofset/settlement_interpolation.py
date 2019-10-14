@@ -3,83 +3,117 @@ import pandas as pd
 import os
 import sys
 from scipy.interpolate import griddata
+from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 '''
+* Consider better names for the output .dat files
 
-IDEA:
-    This script shoud be a refined version that can be run by a machine with Python and necessary
-    dependencies installed.
-    For a user interface for people without Python installed, create another script.
-
-    Limit to a single output Excel file from Sofistik
-
+NOTE Some parameters in this script are hardcoded as they are dictated from the layout of the Excel file
+     that serves as the settlement field input. It is the purpose that the Excel file has as rigid a
+     layout as possible to make the data treatment easier.
+        E.g. it is assumed that the X-coordinates are always in the column "B" in the Excel file, and
+        that there is exactly four data points available for each cross section.
+        These restrictions are to be controlled via the Excel sheet.
 
 '''
-
-### READ EXCEL FILE WITH SECTIONS AND KNOWN SETTLEMENT DATA ###
-file_name = 'Settlement_interpolation\\known_settlement_values.xlsx'   # NOTE: Excel file must be in the same folder as the script
-file_name = 'known_settlement_values.xlsx'   # NOTE: Excel file must be in the same folder as the script
-sheet_name = 'known_settlement_values'
-df_numbers = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=9, nrows=1)
-print(df_numbers.dropna().values)
-print(df_numbers.to_string())
-df_x = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=9, usecols=[1])
-df_y = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=9, usecols=[2,3,4,5])
-df_z25 = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=9, usecols=[6,7,8,9])
-df_z26 = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=9, usecols=[10,11,12,13])
-df_z27 = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=9, usecols=[14,15,16,17])
-df_z28 = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=9, usecols=[18,19,20,21])
-df_z29 = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=9, usecols=[22,23,24,25])
-
-# Insert as many X-colunms as there are columns in the other dataframes
-for i in range(2, len(df_y.columns)+1):
-    df_x[f'X{i}'] = df_x['X']
-
-# Flatten dataframe of y-values into array
-y_temp = df_y.values.flatten()
-
-# Get indecies where values are not NaN
-idx = np.where(~np.isnan(y_temp))
-
-# Extract all non-NaN values to create array of all known points
-y_known = y_temp[idx]
-x_known = df_x.values.flatten()[idx]
-z25_vals = df_z25.values.flatten()[idx]
-z26_vals = df_z26.values.flatten()[idx]
-z27_vals = df_z27.values.flatten()[idx]
-z28_vals = df_z28.values.flatten()[idx]
-z29_vals = df_z29.values.flatten()[idx]
-
-# Mirror all data, since everything is assumed symmetric about CL (only vals defined on one side)
-x_known = np.append(x_known, x_known)
-y_known = np.append(y_known, -y_known)
+# TODO The main dictionary could be renamed to master_dict
 
 
+def read_known_settlements(file_name, skiprows, load_case_dict, points_per_section=5, sheet_name='known_settlement_values'):
+    '''
+    Return load_case_dict updated to include (X, Y, Z)-coordinate arrays, where Z represents the known settlements.
+    '''
+    # Extract X-and Y-coordinates of sections
+    x = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows,
+                      usecols=[1]).values.flatten()
+    y = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows,
+                      usecols=[2,3,4,5,6]).values.flatten()  # FIXME Assumes points_per_section=5
 
-settlements_known = {'125': np.append(z25_vals, z25_vals),
-                     # '26': np.append(z26_vals, z26_vals),
-                     '126': np.append(z27_vals, z27_vals),
-                     '127': np.append(z28_vals, z28_vals),
-                     '124': np.append(z29_vals, z29_vals),
-                     }
+    # Get indices where values are not NaN in the array of y-coordinates
+    idx_no_nan = np.where(~np.isnan(y))
 
-load_case_titles = {'125': 'Settlements before Jernhusen',
-                    # '26': 'Settlements after Jernhusen',
-                    '126': 'LT settlements - Range 1',
-                    '127': 'LT settlements - Range 2',
-                    '124': 'LT settlements - Range 0',
-                   }
+    n = points_per_section
 
-# Go one directory up to get the path for the directory where the model is located
-# model_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..'))   # NOTE Not necessary
+    for i, lc in enumerate(load_case_dict.keys()):
+
+        # Insert Y-array for load case
+        load_case_dict[lc]['Y'] = y[idx_no_nan]
+
+        # Extract string describing interpolation method for given load case
+        int_method = load_case_dict[lc]['int_method']
+
+        # Create the list specifying which columns to take from the Excel sheet for creating dataframe
+        #   If load case is 1D, take only the first row, otherwise take the next four rows.
+        # FIXME List size does not currently scale with points_per_section (assumes points_per_section=5) 
+        cols = [7 + n*i] if '1D' in int_method else [7+n*i, 7+n*i+1, 7+n*i+2, 7+n*i+3, 7+n+i*4]
+ 
+        # Read the columns from Excel file into dataframe
+        df_temp = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, usecols=cols)
+
+        # Extract settlements (here denoted Z suffixed by the load case number)
+        if '1D' in int_method:
+            # NOTE: No Y-values in this scenario
+
+            # In 1D case, take all values as flattened array
+            load_case_dict[lc]['Z'] = df_temp.values.flatten()
+
+            # Store X-coordinates of sections in main dict
+            load_case_dict[lc]['X'] = x
+
+        elif '2D' in int_method:
+            # In 2D case take only values that have valid Y-values associated as flattened array
+            #   Valid values has corresponding value in the Y-array that are not nan
+            load_case_dict[lc]['Z'] = df_temp.values.flatten()[idx_no_nan]
+
+            # Repeat all X-values 'points_per_section' times
+            x_temp = np.tile(x, points_per_section)
+            load_case_dict[lc]['X'] = x_temp[idx_no_nan]
+
+    return load_case_dict
 
 
+# # Flatten dataframe of y-values into array
+# y_temp = df_y.values.flatten()
+
+# # Get indices where values are not NaN
+# idx = np.where(~np.isnan(y_temp))
+
+# # Extract all non-NaN values to create array of all known points
+# y_known = y_temp[idx]
+# x_known = df_x.values.flatten()[idx]
+# z25_vals = df_z25.values.flatten()[idx]
+# z26_vals = df_z26.values.flatten()[idx]
+# z27_vals = df_z27.values.flatten()[idx]
+# z28_vals = df_z28.values.flatten()[idx]
+
+# # Mirror all data, since everything is assumed symmetric about CL (only vals defined on one side)
+# # NB: This is too big of an assumption! TODO: CAHNGE
+# x_known = np.append(x_known, x_known)
+# y_known = np.append(y_known, -y_known)
+# z25_vals = np.append(z25_vals, z25_vals)
+# z26_vals = np.append(z26_vals, z26_vals)
+# z27_vals = np.append(z27_vals, z27_vals)
+# z28_vals = np.append(z28_vals, z28_vals)
+
+# # Put known settlements arrays in a list
+# lc_settlements = [z25_vals, z26_vals, z27_vals, z28_vals]   # TODO CHANGE! Should not be hardcoded.
+
+# # Insert known settlement arrays for each load case into dict
+# for lc_no, lc_settl_known in zip(load_case_dict.keys(), lc_settlements):
+#     load_case_dict[lc_no]['settl_known'] = lc_settl_known
 
 
+# load_case_titles = {'125': 'Settlements before Jernhusen',
+#                     # '26': 'Settlements after Jernhusen',
+#                     '126': 'LT settlements - Range 1',
+#                     '127': 'LT settlements - Range 2',
+#                     '124': 'LT settlements - Range 0',
+#                    }
 
-def interpolate_settlements(x_known, y_known, settlement_known, x, y, method='cubic'):
+
+def interpolate_settlements2D(x_known, y_known, settlement_known, x, y, method='cubic'):
     '''
     Return the interpolated settlement field based on known settlements in given points.
 
@@ -101,36 +135,41 @@ def interpolate_settlements(x_known, y_known, settlement_known, x, y, method='cu
     xy_known = np.array(list(zip(x_known, y_known)))
 
     # Calculate the interpolated z-values
-    settlement_interpolated = griddata(xy_known, settlement_known, (x_nodes, y_nodes), method='cubic')
+    settlement_interpolated = griddata(xy_known, settlement_known, (x, y), method='cubic')
 
     return settlement_interpolated
 
 
-def write_datfile(node_no, settlements):
+def write_datfile(load_case_number, load_case_title, node_numbers, settlements, target_dir):
     '''
-    Write a .dat file with Teddy (SOFiSTiK input) code for applying input settlement field as load case.
+    Write a .dat file with Teddy (SOFiSTiK input) code for applying input settlement field as a load case.
     '''
 
     ### WRITE INTERPOLATED FIELD TO .DAT FILE AS TEDDY CODE ###
     # Write Teddy code for applying interpolated settlements to file
-    with open(f'{model_dir}\\teddy_code_settlement_field_LC{lc}.dat', 'w') as file:       # TODO Directories!!!
-        file.write(f'''+PROG SOFILOAD  $ Plaxis settlement LC{lc}
-HEAD Settlement interpolation for LC{lc} - {load_case_titles[lc]}
+    with open(f'{target_dir}\\teddy_code_settlement_field_LC{load_case_number}.dat', 'w') as file:
+        file.write(f'''+PROG SOFILOAD  $ Plaxis settlement LC{load_case_number}
+HEAD Settlement interpolation for LC{load_case_number} - {load_case_title}
 UNIT TYPE 5
 
-LC {lc} type 'SL' fact 1.0 facd 0.0 titl '{load_case_titles[lc]}'  \n''')
-        for node, settlement in zip(node_no, settlements):
+LC {load_case_number} type 'SL' fact 1.0 facd 0.0 titl '{load_case_title}'  \n''')
+        for node, settlement in zip(node_numbers, settlements):
             file.write(f'  POIN NODE {node} WIDE 0 TYPE WZZ {settlement} \n')
         file.write('END')
 
 
-def print_status_report(x_nodes, y_nodes, settlement_interpolated):
+def print_status_report(x_nodes, y_nodes, settlement_interpolated, load_case):
     '''
     Print a status report summarizing the interpolation for each load case.
+
+    TODO Is this function totally adapted to handle both 1D and 2D interpolation?
     '''
+    print('--------------------------------------------')
+    print('RESULTS FROM SETTLEMENT INTERPOLATION SCRIPT')
+    print('--------------------------------------------')
+
     # Check if interpolated settlements have any nan values
-    print('-------------------------------------------')
-    print(f'    LC{lc}:')
+    print(f'    LC{load_case}:')
     if np.isnan(settlement_interpolated).any():
         print('         INFO:')
         print("         Some interpolated settlement values are 'nan'.")
@@ -152,84 +191,181 @@ def print_status_report(x_nodes, y_nodes, settlement_interpolated):
     print('-------------------------------------------')
 
 
+def read_excel_nodes(directory='current', filename='nodes_to_be_interpolated.xlsx', sheet_name='XLSX-Export'):
+    '''
+    Return the x-, y- and z-coordinates as well as node numbers for nodes present in 'filename'.
+    TODO:
+    '''
 
-print('-------------------------------------------')
-print('RESULTS FROM SETTLEMENT INTERPOLATION SCRIPT')
-for lc, settlement_known in settlements_known.items():
+    if directory == 'current':
+        # Get directory where this module resides
+        desired_dir = os.getcwd()
 
-    ### D-WALL NODES ###
-    # Read data file for structural points and their coordinates (To get D-wall bottom points)
-    df_dwalls = pd.read_excel(f'{model_dir}\\dwall_nodes.xlsx', sheet_name='XLSX-Export')
+    else:
+        # Keep the input argument for directory path
+        desired_dir = directory
+
+    # Read Excel file with node numbers and their coordinates into a dataframe
+    df_nodes = pd.read_excel(f'{desired_dir}\\{filename}', sheet_name=sheet_name)
 
     # Remove leading or trailing white space from column names
-    df_dwalls.columns = df_dwalls.columns.str.strip()
+    df_nodes.columns = df_nodes.columns.str.strip()
 
-    # Gather corner points of D-walls (x, y, z) where settlement values will be interpolated
-    x_dwalls, y_dwalls, z_dwalls = df_dwalls['X [m]'], df_dwalls['Y [m]'], -df_dwalls['Z [m]']
-    node_no_dwalls = df_dwalls['NR']
+    x_nodes, y_nodes, z_nodes = df_nodes['X [m]'], df_nodes['Y [m]'], df_nodes['Z [m]']
+    node_no = df_nodes['NR']
 
-    ### BASE SLAB NODES ###
-    # Read file with base slab node numbers and their coordinates into a dataframe
-    df_slabs = pd.read_excel(f'{model_dir}\\base_slab_nodes.xlsx', sheet_name='XLSX-Export')
+    return x_nodes, y_nodes, z_nodes, node_no
 
-    # Remove leading or trailing white space from column names
-    df_slabs.columns = df_slabs.columns.str.strip()
 
+def plot_3D_results(lc, master_dict, settlements_interpolated):
     '''
-    Remove any potential nodes having Z > the base slab node with the largest Z-coordindate
-    Sofistik sometimes fails to filter correctly. E.g. some nodes at beam dowels appear as being in the
-    base slab. Note: Z-axis is modelled as positive downwards in Sofistik.
+    Plot the result of the interpolation as a 3D scatter plot showing the known points that the
+    interpolation is based on in green and the interpolated points in blue.
     '''
-    Z_value_just_above_base_slab = -9.591
-    df_slabs = df_slabs[df_slabs['Z [m]'] < Z_value_just_above_base_slab]
-    # df_slabs.to_csv('df_slabs.txt', sep='\t')
 
-    x_slabs, y_slabs, z_slabs = df_slabs['X [m]'], df_slabs['Y [m]'], df_slabs['Z [m]']
-    node_no_slabs = df_slabs['NR']
+    # Read (x, y)-coordinates and numbers of nodes to be interpolated (read from Excel)
+    x_nodes, y_nodes, _, node_no = read_excel_nodes()   # TODO Excel file name should be input
 
-    ### COMBINE BASE SLAB AND D-WALL DATA ###
-    x_nodes = np.append(x_dwalls, x_slabs)
-    y_nodes = np.append(y_dwalls, y_slabs)
-    z_nodes = np.append(z_dwalls, z_slabs)
-    node_no = np.append(node_no_dwalls, node_no_slabs)
+    # Extract known coordinates and interpo method from master dict
+    x_known = master_dict[lc]['X']
+    y_known = master_dict[lc]['Y']
+    settlements_known = master_dict[lc]['Z']
+    int_method = master_dict[lc]['int_method'].lower()
 
-    # ### COMBINE BASE SLAB AND D-WALL DATA ###
-    # x_nodes = x_slabs
-    # y_nodes = y_slabs
-    # z_nodes = z_slabs
-    # node_no = node_no_slabs
+    # Create figure object
+    fig = plt.figure()
 
-    ### PERFORM INTERPOLATION ###
-    settlement_interpolated = interpolate_settlements(x_known, y_known, settlement_known,
-                                                      x_nodes, y_nodes, method='cubic')
-
-    ### PRINT STATUS REPORT FROM INTERPOLATION ###
-    print_status_report(x_nodes, y_nodes, settlement_interpolated)
-
-    ### WRITE INTERPOLATED FIELD TO .DAT FILE AS TEDDY CODE ###
-    write_datfile(node_no, settlement_interpolated)
-
-
-
-
-    def plot_3D_results(x_known, y_known, settlement_known, x, y, settlement_interpolated):
-        '''
-        Plot the result of the interpolation as a 3D scatter plot showing the known points that the
-        interpolation is based on in green and the interpolated points in blue.
-        '''
-
-        # Create figure and axis object
-        fig = plt.figure()
+    if '2d' in int_method:
+        # Create axis object for 3D plot (Visualizing 2D interpolations)
         ax = fig.add_subplot(111, projection='3d')
 
         # Plot known settlement points
-        ax.scatter(x_known, y_known, settlement_known, '-.', color='limegreen')
+        ax.scatter(x_known, y_known, settlements_known, '-.', color='limegreen')
 
         # Plot interpolated field
-        ax.scatter(x, y, settlement_interpolated, '.', color='cornflowerblue', s=0.1)
+        ax.scatter(x_nodes, y_nodes, settlements_interpolated, '.', color='cornflowerblue', s=0.1)
 
-        # Set limits
-        # ax.set_xlim(6800, 7350)
-        # ax.set_zlim(-22, -15)
-        # ax.set_ylim(-100, 100)
-        plt.show()
+    elif '1d' in int_method:
+        # Create axis object for 2D plot (Visualizing 1D interpolations)
+        ax = plt.subplots()
+
+        # Plot known points
+        ax.plot(x_known, settlements_known, '.', color='limegreen')
+
+        # Plot interpolated points
+        ax.plot(x_known, settlements_known, '.', color='cornflowerblue', s=0.1)
+
+    else:
+        raise Exception("The interpolation method ('int_method') needs to specify 1D or 2D and linear or cubic.")
+
+    # Set limits
+    # ax.set_xlim(6800, 7350)
+    # ax.set_zlim(-22, -15)
+    # ax.set_ylim(-100, 100)
+    plt.show()
+
+
+def run_analysis(master_dict, target_dir='current_dir', plot_results=False):
+
+    for lc in master_dict:
+
+        # Set variables from dict for load case
+        title = master_dict[lc]['title']
+        x_known = master_dict[lc]['X']
+        y_known = master_dict[lc]['Y']
+        settlements_known = master_dict[lc]['Z']
+        int_method = master_dict[lc]['int_method'].lower()
+        lc_title = master_dict[lc]['title']
+
+        # Read (x, y)-coordinates and numbers of nodes to be interpolated (read from Excel)
+        x_nodes, y_nodes, _, node_no = read_excel_nodes()
+
+        # Extract chosen method for interpolation
+        if 'linear' in int_method:
+            # Set method to linear interpolation
+            method = 'linear'
+        elif 'cubic' in int_method:
+            # Set method to cubic interpolation
+            method = 'cubic'
+
+        # Check for interpolation dimention and run analysis
+        if '1d' in int_method:
+            # Perform 1D interpolation and store results (only X-coordinate varying)
+            f_int = interp1d(x_known, settlements_known, kind=method)
+
+            # Sort X-coordinates of nodes and node numbers
+            sorted_indices = x_nodes.argsort()
+            x_nodes = x_nodes[sorted_indices]
+            node_no = node_no[sorted_indices]
+
+            # Extract interpolated settlemnt values at desired X-coordinates
+            settlements_interpolated = f_int(x_nodes)
+
+        elif '2d' in int_method:
+            # Perform linear 2D interpolation (X,Y-coordinates varying)
+            settlements_interpolated = interpolate_settlements2D(x_known, y_known, settlements_known,
+                                                                x_nodes, y_nodes, method=method)
+
+        else:
+            raise Exception("The interpolation method ('int_method') needs to specify 1D or 2D and linear or cubic.")
+
+        # Print status report from interpolation
+        print_status_report(x_nodes, y_nodes, settlements_interpolated, lc)
+
+        # Determine directory for saving the dat-file
+        if target_dir == 'current_dir':
+            # Get current working directory (where module is run from, i.e. Sofistik dir)
+            target_dir = os.getcwd()
+
+        print(x_known.shape)
+        print(y_known.shape)
+        print(settlements_known.shape)
+        # Write interpolated field to .dat file as Teddy code
+        write_datfile(lc, lc_title, node_no, settlements_interpolated, target_dir)
+
+        if plot_results:
+            plot_3D_results(lc, master_dict, settlements_interpolated)
+
+
+# '''
+# Remove any potential nodes having Z > the base slab node with the largest Z-coordindate
+# Sofistik sometimes fails to filter correctly. E.g. some nodes at beam dowels appear as being in the
+# base slab. Note: Z-axis is modelled as positive downwards in Sofistik.
+# '''
+# Z_value_just_above_base_slab = -9.591
+# df_slabs = df_slabs[df_slabs['Z [m]'] < Z_value_just_above_base_slab]
+
+
+### READ EXCEL FILE WITH SECTIONS AND KNOWN SETTLEMENT DATA ###
+file_name = 'Settlement_interpolation\\known_settlement_values.xlsx'   # NOTE Excel file must be in the same folder as the script
+# file_name = 'known_settlement_values.xlsx'   # NOTE Excel file must be in the same folder as the script
+sheet_name = 'known_settlement_values'
+skiprows = 10
+# df_numbers = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, nrows=1)   # TODO Is this used?
+
+# Read load cases, their titles and the desired interpolation method
+df_load_cases = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows-2, usecols=range(6, 26))
+
+# Retain only columns starting with integers of any length (must be the load case numbers)
+df_load_cases = df_load_cases.filter(regex='^\d+',axis=1).loc[:1]
+
+# Convert dataframe of load cases, titles and int_method to a dict of dicts, one for each load case
+#   format: { lc_number: {0: 'title_will_be_here', 1: 'method_will_be_here'} }
+load_case_dict = df_load_cases.to_dict(orient='dict')
+
+# Rename keys in inner dictionaries
+#   format: { lc_number: {title: 'title_will_be_here', 'int_method': 'method_will_be_here'} }
+for dic in load_case_dict.values():
+    dic['title'] = dic.pop(0)
+    dic['int_method'] = dic.pop(1)
+
+# # Get directory that the script is run from
+# script_dir = os.path.abspath(__file__)
+
+# # Go one directory up to get the path for the directory where the model is located
+# model_dir = os.path.abspath(os.path.join(script_dir, '..'))   # NB Not necessarily whats wanted
+
+d = read_known_settlements(file_name, skiprows, load_case_dict, points_per_section=5, sheet_name='known_settlement_values')
+
+# interpolate_settlements(d[f'X{lc}'], d['Y'], d[f'Z{lc}'])
+run_analysis(d, plot_results=True)
