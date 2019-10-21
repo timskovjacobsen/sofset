@@ -76,45 +76,6 @@ def read_known_settlements(file_name, skiprows, load_case_dict, points_per_secti
     return load_case_dict
 
 
-# # Flatten dataframe of y-values into array
-# y_temp = df_y.values.flatten()
-
-# # Get indices where values are not NaN
-# idx = np.where(~np.isnan(y_temp))
-
-# # Extract all non-NaN values to create array of all known points
-# y_known = y_temp[idx]
-# x_known = df_x.values.flatten()[idx]
-# z25_vals = df_z25.values.flatten()[idx]
-# z26_vals = df_z26.values.flatten()[idx]
-# z27_vals = df_z27.values.flatten()[idx]
-# z28_vals = df_z28.values.flatten()[idx]
-
-# # Mirror all data, since everything is assumed symmetric about CL (only vals defined on one side)
-# # NB: This is too big of an assumption! TODO: CAHNGE
-# x_known = np.append(x_known, x_known)
-# y_known = np.append(y_known, -y_known)
-# z25_vals = np.append(z25_vals, z25_vals)
-# z26_vals = np.append(z26_vals, z26_vals)
-# z27_vals = np.append(z27_vals, z27_vals)
-# z28_vals = np.append(z28_vals, z28_vals)
-
-# # Put known settlements arrays in a list
-# lc_settlements = [z25_vals, z26_vals, z27_vals, z28_vals]   # TODO CHANGE! Should not be hardcoded.
-
-# # Insert known settlement arrays for each load case into dict
-# for lc_no, lc_settl_known in zip(load_case_dict.keys(), lc_settlements):
-#     load_case_dict[lc_no]['settl_known'] = lc_settl_known
-
-
-# load_case_titles = {'125': 'Settlements before Jernhusen',
-#                     # '26': 'Settlements after Jernhusen',
-#                     '126': 'LT settlements - Range 1',
-#                     '127': 'LT settlements - Range 2',
-#                     '124': 'LT settlements - Range 0',
-#                    }
-
-
 def interpolate_settlements2D(x_known, y_known, settlement_known, x, y, method='cubic'):
     '''
     Return the interpolated settlement field based on known settlements in given points.
