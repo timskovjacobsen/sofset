@@ -3,6 +3,7 @@ This program enables automatic generation of imposed displacement fields as load
 
 The primary use case is for applying interpolated settlement fields to a structure based on an array of points known beforehand, e.g. from a detailed geotechnical analysis. 
 
+
 ## How It Works
 
 1. Fill out Excel file with known points from a settlement curve
@@ -11,17 +12,12 @@ The primary use case is for applying interpolated settlement fields to a structu
 4. 
 ...
 
+
+![3D_plot from script](https://github.com/timskovjacobsen/sofset/blob/assets/Interpolation_3D_plot.PNG)
+
+
 ## Run Script Directly from SOFiSTiK
-Running a Python script from inside a Teddy task in Sofistik is as easy as:
-
-`+sys python script_name.py`
-
-This is the same way you would run the code from the command line (accept for the `+sys`, which is SOFiSTiK's way of invoking the command line from within a Teddy task). 
-
-**Note:** This assumes that you ahve the script in the same directory as the .sofistik file that the Teddy task resides in.  
-
-### Example
-
+Running the Python script from inside a Teddy task in Sofistik is as easy as:
 
 ```
 +sys python settlement_interpolation/sofset.py
