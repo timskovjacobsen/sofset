@@ -1,5 +1,6 @@
 
-import sofset
+import pytest
 
+from sofset import sofset
 
 
