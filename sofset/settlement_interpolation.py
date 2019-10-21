@@ -17,8 +17,10 @@ NOTE Some parameters in this script are hardcoded as they are dictated from the 
         that there is exactly four data points available for each cross section.
         These restrictions are to be controlled via the Excel sheet.
 
+TODO Create possibility for choosing load type for each load case ['SL', 'G', ...]. Should default to 'SL' (short term load, taken away instantly after calculation) 
+
 '''
-# TODO The main dictionary could be renamed to master_dict
+# TODO The main dictionary could be renamed to master_dict or something else
 
 
 def read_known_settlements(file_name, skiprows, load_case_dict, points_per_section=5, sheet_name='known_settlement_values'):
