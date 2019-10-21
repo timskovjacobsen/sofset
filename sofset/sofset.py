@@ -228,15 +228,23 @@ def plot_3D_results(lc, master_dict, settlements_interpolated):
     plt.show()
 
 
-def filter_nodes():
-    # '''
-    # Remove any potential nodes having Z > the base slab node with the largest Z-coordindate
-    # Sofistik sometimes fails to filter correctly. E.g. some nodes at beam dowels appear as being in the
-    # base slab. Note: Z-axis is modelled as positive downwards in Sofistik.
-    # '''
-    # Z_value_just_above_base_slab = -9.591
-    # df_slabs = df_slabs[df_slabs['Z [m]'] < Z_value_just_above_base_slab]
-    pass
+def filter_nodes_for_Zmin(df, Zmin_allowable):
+    '''
+    Return df filtered by filter_condition.
+
+    The parameters 'Zmax_allowable' and 'Zmin_allowable' are mutually exclusive and at 
+    least one of them must be specified.
+
+    Args: 
+        df (dataframe)          : Pandas dataframe with a column named 'Z [m]' present
+        Zmin_allowable (number) : Min allowable Z-value for resulting df
+    '''
+
+    try:
+        return df[df['Z [m]'] < Zmin_allowable]
+    
+    except KeyError:
+        print('KeyError: Make sure the input dataframe contains a column named "Z [m]".')
 
 
 def run_analysis(master_dict, directory_lookup='current', target_dir='current', plot_results=False):
