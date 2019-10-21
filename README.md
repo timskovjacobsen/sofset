@@ -6,17 +6,32 @@ The primary use case is for applying interpolated settlement fields to a structu
 
 ## How It Works
 
+**Note:** You need to have Python installed with the necessary dependencies to run this program. See section on Dependencies furhter down.
 
-1. **Fill out the input Excel file** with known points from a settlement curve and desired load case number, title and interpolation method.** 
-Download the input file here: [known_settlements.xlsx](https://github.com/timskovjacobsen/sofset/raw/master/input/known_settlement_values.xlsx)
-2. **Create an output Excel file from Sofistik** containing node numbers and X- and Y-coordinates of the nodes where imposed displacements are to be applied. SOFiSTiK (2018 version at least) has a built-in feature for `.xlsx`-exports via ResultViewver, see e.g. [SOFiSTiK Excel Export](https://www.sofistik.de/documentation/2018/en/tutorials/listoftutorials/general-workflows/export_results_to_excel.htm). 
-3. 
+1. Download the [Python script](https://github.com/timskovjacobsen/sofset/blob/master/sofset/sofset.py). 
+
+2. **Fill out the input Excel file called `known_settlement_values.xlsx`** with known points from a settlement curve and desired load case number, title and interpolation method.  
+Download the input file here: [known_settlement_values.xlsx](https://github.com/timskovjacobsen/sofset/raw/master/input/known_settlement_values.xlsx)
+3. **Create an output Excel file from Sofistik called `nodes_to_be_interpolated.xlsx`** containing node numbers and X- and Y-coordinates of the nodes where imposed displacements are to be applied. SOFiSTiK (2018 version at least) has a built-in feature for `.xlsx`-exports via ResultViewver, see e.g. [SOFiSTiK Excel Export](https://www.sofistik.de/documentation/2018/en/tutorials/listoftutorials/general-workflows/export_results_to_excel.htm). 
 4. 
+5. 
 ...
 
-The folder structure should look like this:
+The SOFiSTiK model folder structure should look like this:
+```
+model_folder
+├── settlement_interpolation        # Subfolder
+|   ├── known_settlements.xlsx      # Input Excel file to script
+|   ├── sofset.py                   # Python script 
+|
+├── model_name.sofistik             # Sofistik model
+├── model_name.dwg                  # Sofiplus (autocad) model
 
+├── ...                             # Any other files
 
+├── nodes_to_be_interpolated.xlsx   # Excel output from Sofistik, input to script
+```
+**Note:** The two Excel files that the script reads must have the exact names specified above!
 
 ### Visualization of interpolation
 The screenshot below shows the green control points (i.e. the known points) and the interpolated values in the FE-nodes that were input to the program
@@ -37,6 +52,9 @@ Running the Python script from inside a Teddy task in Sofistik is as easy as:
 This is the same way you would run the code from the command line (accept for the `+sys`, which is SOFiSTiK's way of invoking the command line from within a Teddy task).
 
 **Note:** The code assumes that in the same directory as the .sofistik file that the Teddy task resides in.
+
+## Dependencies
+
 
 ## Interpolation Method
 
