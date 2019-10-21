@@ -11,7 +11,16 @@ Creating load cases of imposed displacements in SOFiSTiK models.
 ...
 
 ## Run Script Directly from SOFiSTiK
-`+sys ....`
+Running a Python script from inside a Teddy task in Sofistik is as easy as:
+
+`+sys python script_name.py`
+
+This is the same way you would run the code from the command line (accept for the `+sys`, which is SOFiSTiK's way of invoking the command line from within a Teddy task). 
+
+**Note:** This assumes that you ahve the script in the same directory as the .sofistik file that the Teddy task resides in.  
+
+### Example
+
 
 
 ## Interpolation Method
