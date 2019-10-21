@@ -17,8 +17,10 @@ NOTE Some parameters in this script are hardcoded as they are dictated from the 
         that there is exactly four data points available for each cross section.
         These restrictions are to be controlled via the Excel sheet.
 
+TODO Create possibility for choosing load type for each load case ['SL', 'G', ...]. Should default to 'SL' (short term load, taken away instantly after calculation) 
+
 '''
-# TODO The main dictionary could be renamed to master_dict
+# TODO The main dictionary could be renamed to master_dict or something else
 
 
 def read_known_settlements(file_name, skiprows, load_case_dict, points_per_section=5, sheet_name='known_settlement_values'):
@@ -140,10 +142,14 @@ def interpolate_settlements2D(x_known, y_known, settlement_known, x, y, method='
     return settlement_interpolated
 
 
-def write_datfile(load_case_number, load_case_title, node_numbers, settlements, target_dir):
+def write_datfile(load_case_number, load_case_title, node_numbers, settlements, target_dir='current'):
     '''
     Write a .dat file with Teddy (SOFiSTiK input) code for applying input settlement field as a load case.
     '''
+
+    if target_dir == 'current':
+        # Get directory where this module resides
+        target_dir = os.getcwd()
 
     ### WRITE INTERPOLATED FIELD TO .DAT FILE AS TEDDY CODE ###
     # Write Teddy code for applying interpolated settlements to file
@@ -191,22 +197,18 @@ def print_status_report(x_nodes, y_nodes, settlement_interpolated, load_case):
     print('-------------------------------------------')
 
 
-def read_excel_nodes(directory='current', filename='nodes_to_be_interpolated.xlsx', sheet_name='XLSX-Export'):
+def read_excel_nodes(directory_lookup='current', filename='nodes_to_be_interpolated.xlsx', sheet_name='XLSX-Export'):
     '''
     Return the x-, y- and z-coordinates as well as node numbers for nodes present in 'filename'.
     TODO:
     '''
 
-    if directory == 'current':
+    if directory_lookup == 'current':
         # Get directory where this module resides
-        desired_dir = os.getcwd()
-
-    else:
-        # Keep the input argument for directory path
-        desired_dir = directory
+        directory_lookup = os.getcwd()
 
     # Read Excel file with node numbers and their coordinates into a dataframe
-    df_nodes = pd.read_excel(f'{desired_dir}\\{filename}', sheet_name=sheet_name)
+    df_nodes = pd.read_excel(f'{directory_lookup}\\{filename}', sheet_name=sheet_name)
 
     # Remove leading or trailing white space from column names
     df_nodes.columns = df_nodes.columns.str.strip()
@@ -265,7 +267,7 @@ def plot_3D_results(lc, master_dict, settlements_interpolated):
     plt.show()
 
 
-def run_analysis(master_dict, target_dir='current_dir', plot_results=False):
+def run_analysis(master_dict, directory_lookup='current', target_dir='current', plot_results=False):
 
     for lc in master_dict:
 
@@ -277,8 +279,12 @@ def run_analysis(master_dict, target_dir='current_dir', plot_results=False):
         int_method = master_dict[lc]['int_method'].lower()
         lc_title = master_dict[lc]['title']
 
+        if directory_lookup == 'current':
+            # Get directory where this module resides
+            directory_lookup = os.getcwd()
+
         # Read (x, y)-coordinates and numbers of nodes to be interpolated (read from Excel)
-        x_nodes, y_nodes, _, node_no = read_excel_nodes()
+        x_nodes, y_nodes, _, node_no = read_excel_nodes(directory_lookup=directory_lookup)
 
         # Extract chosen method for interpolation
         if 'linear' in int_method:
@@ -317,9 +323,6 @@ def run_analysis(master_dict, target_dir='current_dir', plot_results=False):
             # Get current working directory (where module is run from, i.e. Sofistik dir)
             target_dir = os.getcwd()
 
-        print(x_known.shape)
-        print(y_known.shape)
-        print(settlements_known.shape)
         # Write interpolated field to .dat file as Teddy code
         write_datfile(lc, lc_title, node_no, settlements_interpolated, target_dir)
 
@@ -336,36 +339,36 @@ def run_analysis(master_dict, target_dir='current_dir', plot_results=False):
 # df_slabs = df_slabs[df_slabs['Z [m]'] < Z_value_just_above_base_slab]
 
 
-### READ EXCEL FILE WITH SECTIONS AND KNOWN SETTLEMENT DATA ###
-file_name = 'Settlement_interpolation\\known_settlement_values.xlsx'   # NOTE Excel file must be in the same folder as the script
-# file_name = 'known_settlement_values.xlsx'   # NOTE Excel file must be in the same folder as the script
-sheet_name = 'known_settlement_values'
-skiprows = 10
-# df_numbers = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, nrows=1)   # TODO Is this used?
+if __name__ == "__main__":
+    ### READ EXCEL FILE WITH SECTIONS AND KNOWN SETTLEMENT DATA ###
+    file_name = 'Settlement_interpolation\\known_settlement_values.xlsx'   # NOTE Excel file must be in the same folder as the script
+    sheet_name = 'known_settlement_values'
+    skiprows = 10
+    # df_numbers = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, nrows=1)   # TODO Is this used?
 
-# Read load cases, their titles and the desired interpolation method
-df_load_cases = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows-2, usecols=range(6, 26))
+    # Read load cases, their titles and the desired interpolation method
+    df_load_cases = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows-2, usecols=range(6, 26))
 
-# Retain only columns starting with integers of any length (must be the load case numbers)
-df_load_cases = df_load_cases.filter(regex='^\d+',axis=1).loc[:1]
+    # Retain only columns starting with integers of any length (must be the load case numbers)
+    df_load_cases = df_load_cases.filter(regex='^\d+',axis=1).loc[:1]
 
-# Convert dataframe of load cases, titles and int_method to a dict of dicts, one for each load case
-#   format: { lc_number: {0: 'title_will_be_here', 1: 'method_will_be_here'} }
-load_case_dict = df_load_cases.to_dict(orient='dict')
+    # Convert dataframe of load cases, titles and int_method to a dict of dicts, one for each load case
+    #   format: { lc_number: {0: 'title_will_be_here', 1: 'method_will_be_here'} }
+    load_case_dict = df_load_cases.to_dict(orient='dict')
 
-# Rename keys in inner dictionaries
-#   format: { lc_number: {title: 'title_will_be_here', 'int_method': 'method_will_be_here'} }
-for dic in load_case_dict.values():
-    dic['title'] = dic.pop(0)
-    dic['int_method'] = dic.pop(1)
+    # Rename keys in inner dictionaries
+    #   format: { lc_number: {title: 'title_will_be_here', 'int_method': 'method_will_be_here'} }
+    for dic in load_case_dict.values():
+        dic['title'] = dic.pop(0)
+        dic['int_method'] = dic.pop(1)
 
-# # Get directory that the script is run from
-# script_dir = os.path.abspath(__file__)
+    # # Get directory that the script is run from
+    # script_dir = os.path.abspath(__file__)
 
-# # Go one directory up to get the path for the directory where the model is located
-# model_dir = os.path.abspath(os.path.join(script_dir, '..'))   # NB Not necessarily whats wanted
+    # # Go one directory up to get the path for the directory where the model is located
+    # model_dir = os.path.abspath(os.path.join(script_dir, '..'))   # NB Not necessarily whats wanted
 
-d = read_known_settlements(file_name, skiprows, load_case_dict, points_per_section=5, sheet_name='known_settlement_values')
+    d = read_known_settlements(file_name, skiprows, load_case_dict, points_per_section=5, sheet_name='known_settlement_values')
 
-# interpolate_settlements(d[f'X{lc}'], d['Y'], d[f'Z{lc}'])
-run_analysis(d, plot_results=True)
+    # interpolate_settlements(d[f'X{lc}'], d['Y'], d[f'Z{lc}'])
+    run_analysis(d, plot_results=False)     # FIXME Results can't be plotted as of now
