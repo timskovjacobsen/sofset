@@ -81,18 +81,23 @@ def interpolate_settlements2D(x_known, y_known, settlement_known, x, y, method='
     Return the interpolated settlement field based on known settlements in given points.
 
     Args:
-        x_known (list/numpy array)              : x-coordinate in points with known settlements
-        y_known (list/numpy array)              : y-coordinate in points with known settlements
-        settlements_known (list/numpy array)    : Settlement value in known points
-        x (list/numpy array)                    : x-coordinate at points where interpolation is desired
-        y (list/numpy array)                    : y-coordinate at points where interpolation is desired
-        method (str) (optional)                 : Method for interpolation, defaults to 'cubic' as that
-                                                  normally represents structural displacements better. Other
-                                                  valid arguments are 'linear' or 'nearest'.
+        x_known (list/numpy array)        : x-coordinate in points with known settlements
+        y_known (list/numpy array)        : y-coordinate in points with known settlements
+        settlements_known (list/np array) : Settlement value in known points
+        x (list/numpy array)              : x-coordinate at points where interpolation is desired
+        y (list/numpy array)              : y-coordinate at points where interpolation is desired
+        method (str) (optional)           : Method for interpolation, defaults to 'cubic' as that
+                                            normally represents structural displacements better.
+                                            Other valid arguments are 'linear' or 'nearest'.
 
     Returns
-        settlement_interpolated (numpy array)   : Interpolated settlement values in all points (x, y).
+        settlement_interpolated (np array) : Interpolated settlement values in all points (x, y).
     '''
+
+    # Check validity of interpolation method input
+    if method not in ['cubic', 'linear', 'nearest']:
+        raise Exception('''Interpolation method must be either "cubic", "linear" or "nearest", 
+                           not {method}.''') 
 
     # x-y coordinates of points with known displacements
     xy_known = np.array(list(zip(x_known, y_known)))
@@ -103,9 +108,11 @@ def interpolate_settlements2D(x_known, y_known, settlement_known, x, y, method='
     return settlement_interpolated
 
 
-def write_datfile(load_case_number, load_case_title, node_numbers, settlements, target_dir='current'):
+def write_datfile(load_case_number, load_case_title, node_numbers, settlements, 
+                  target_dir='current'):
     '''
-    Write a .dat file with Teddy (SOFiSTiK input) code for applying input settlement field as a load case.
+    Write a .dat file with Teddy (SOFiSTiK input) code for applying input settlement field as a 
+    load case.
     '''
 
     if target_dir == 'current':
