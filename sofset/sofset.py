@@ -228,6 +228,17 @@ def plot_3D_results(lc, master_dict, settlements_interpolated):
     plt.show()
 
 
+def filter_nodes():
+    # '''
+    # Remove any potential nodes having Z > the base slab node with the largest Z-coordindate
+    # Sofistik sometimes fails to filter correctly. E.g. some nodes at beam dowels appear as being in the
+    # base slab. Note: Z-axis is modelled as positive downwards in Sofistik.
+    # '''
+    # Z_value_just_above_base_slab = -9.591
+    # df_slabs = df_slabs[df_slabs['Z [m]'] < Z_value_just_above_base_slab]
+    pass
+
+
 def run_analysis(master_dict, directory_lookup='current', target_dir='current', plot_results=False):
 
     for lc in master_dict:
@@ -289,15 +300,6 @@ def run_analysis(master_dict, directory_lookup='current', target_dir='current', 
 
         if plot_results:
             plot_3D_results(lc, master_dict, settlements_interpolated)
-
-
-# '''
-# Remove any potential nodes having Z > the base slab node with the largest Z-coordindate
-# Sofistik sometimes fails to filter correctly. E.g. some nodes at beam dowels appear as being in the
-# base slab. Note: Z-axis is modelled as positive downwards in Sofistik.
-# '''
-# Z_value_just_above_base_slab = -9.591
-# df_slabs = df_slabs[df_slabs['Z [m]'] < Z_value_just_above_base_slab]
 
 
 if __name__ == "__main__":
