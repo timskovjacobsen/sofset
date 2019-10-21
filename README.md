@@ -6,15 +6,27 @@ The primary use case is for applying interpolated settlement fields to a structu
 
 ## How It Works
 
-1. Fill out Excel file with known points from a settlement curve
-2. Output Excel file from Sofistik containing node numbers and X- and Y-coordinates of the nodes where a imposed displacement is desired
+
+1. **Fill out the input Excel file** with known points from a settlement curve and desired load case number, title and interpolation method.** 
+Download the input file here: [known_settlements.xlsx](https://github.com/timskovjacobsen/sofset/raw/master/input/known_settlement_values.xlsx)
+2. **Create an output Excel file from Sofistik** containing node numbers and X- and Y-coordinates of the nodes where imposed displacements are to be applied. SOFiSTiK (2018 version at least) has a built-in feature for `.xlsx`-exports via ResultViewver, see e.g. [SOFiSTiK Excel Export](https://www.sofistik.de/documentation/2018/en/tutorials/listoftutorials/general-workflows/export_results_to_excel.htm). 
 3. 
 4. 
 ...
 
+The folder structure should look like this:
 
+
+
+### Visualization of interpolation
+The screenshot below shows the green control points (i.e. the known points) and the interpolated values in the FE-nodes that were input to the program
 ![3D_plot from script](https://github.com/timskovjacobsen/sofset/blob/assets/Interpolation_3D_plot.PNG)
 
+### Application of load case in SOFiSTiK
+The resul of applying the load cases in SOFiSTiK by executing the generated `.dat`-files is shown below
+![3D_plot from script](https://github.com/timskovjacobsen/sofset/blob/assets/Settlements_interpolated_by_Python.PNG)
+
+![3D_plot from script](https://github.com/timskovjacobsen/sofset/blob/assets/Settlements_interpolated_by_Python_XZ_plane.PNG)
 
 ## Run Script Directly from SOFiSTiK
 Running the Python script from inside a Teddy task in Sofistik is as easy as:
