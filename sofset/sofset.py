@@ -14,7 +14,7 @@ NOTE Some parameters in this script are hardcoded as they are dictated from the 
      that serves as the settlement field input. It is the purpose that the Excel file has as rigid a
      layout as possible to make the data treatment easier.
         E.g. it is assumed that the X-coordinates are always in the column "B" in the Excel file, and
-        that there is exactly four data points available for each cross section.
+        that there is exactly five data points available for each cross section.
         These restrictions are to be controlled via the Excel sheet.
 
 TODO Create possibility for choosing load type for each load case ['SL', 'G', ...]. Should default to 'SL' (short term load, taken away instantly after calculation) 
@@ -26,7 +26,11 @@ TODO Create possibility for choosing load type for each load case ['SL', 'G', ..
 def read_known_settlements(file_name, skiprows, load_case_dict, points_per_section=5, sheet_name='known_settlement_values'):
     '''
     Return load_case_dict updated to include (X, Y, Z)-coordinate arrays, where Z represents the known settlements.
+
     '''
+    if points_per_section != 5:
+        raise Exception('Arg points_per_section is currently only allowed to be 5')
+
     # Extract X-and Y-coordinates of sections
     x = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows,
                       usecols=[1]).values.flatten()
@@ -168,7 +172,6 @@ def print_status_report(x_nodes, y_nodes, settlement_interpolated, load_case):
 def read_excel_nodes(directory_lookup='current', filename='nodes_to_be_interpolated.xlsx', sheet_name='XLSX-Export'):
     '''
     Return the x-, y- and z-coordinates as well as node numbers for nodes present in 'filename'.
-    TODO:
     '''
 
     if directory_lookup == 'current':
@@ -267,7 +270,7 @@ def run_analysis(master_dict, directory_lookup='current', target_dir='current', 
         lc_title = master_dict[lc]['title']
 
         if directory_lookup == 'current':
-            # Get directory where this module resides
+            # Get directory where script is run from
             directory_lookup = os.getcwd()
 
         # Read (x, y)-coordinates and numbers of nodes to be interpolated (read from Excel)
@@ -318,8 +321,11 @@ def run_analysis(master_dict, directory_lookup='current', target_dir='current', 
 
 
 if __name__ == "__main__":
-    ### READ EXCEL FILE WITH SECTIONS AND KNOWN SETTLEMENT DATA ###
-    file_name = 'Settlement_interpolation\\known_settlement_values.xlsx'   # NOTE Excel file must be in the same folder as the script
+
+    # Set path to Excel file for the input settlement field
+    file_name = 'Settlement_interpolation\\known_settlement_values.xlsx'  
+
+    # Sheet name and number of rows to skip when reading into pandas dataframe 
     sheet_name = 'known_settlement_values'
     skiprows = 10
 
