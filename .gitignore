@@ -116,4 +116,4 @@ ENV/
 *.xlsx
 *.xlsm
 !settlement_nodes.xlsx
-!known_settlement_values.xlsx
+!known_settlement_values.xlsm
