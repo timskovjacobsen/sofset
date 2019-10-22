@@ -54,7 +54,7 @@ This is the same way you would run the code from the command line (accept for th
 **Note:** Since the script is being frun from the directory where the `.sofistik` files resides, it is necessary to prepend the `settlement_interpolation` folder to the path when calling the script.
 
 <!-- ## Dependencies
-The dependencies for the script are listed in the file called `requirements.txt`. -->
+TODO: The dependencies for the script are listed in the file called `requirements.txt`. -->
 
 ## Interpolation Method
 
@@ -93,8 +93,8 @@ If this problem arises, consider whether variation in the Y-direction is really 
 The input Excel sheet is by default protected in all cells that are not input cells to avoid changing the layout by mistake. The script assumes a certian layout in order to detect the input values correctly. If necessary, use the passwork `sofset` to clear the cell protection if you want to take notes in the sheet etc. Otherwise create new sheets to do so.
 
 ## Bugs and Improvements 
-If you have discovered a bug or wish for a new feature to be implemented, please create a Issue with a good description.
+If you have discovered a bug or wish for a new feature to be implemented, please create an Issue via GitHub with a good description.
 
-<!-- ## Contributions -->
+<!-- ## Contributions TODO: Add markdown file describing how to contribute-->
 
 
