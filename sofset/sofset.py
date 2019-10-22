@@ -323,7 +323,7 @@ def run_analysis(master_dict, directory_lookup='current', target_dir='current', 
 if __name__ == "__main__":
 
     # Set path to Excel file for the input settlement field
-    file_name = 'Settlement_interpolation\\known_settlement_values.xlsx'  
+    file_name = 'Settlement_interpolation\\known_settlement_values.xlsm'  
 
     # Sheet name and number of rows to skip when reading into pandas dataframe 
     sheet_name = 'known_settlement_values'
