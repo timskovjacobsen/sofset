@@ -1,21 +1,21 @@
 # sofset
-This program enables automatic generation of imposed displacement fields as load cases in the Finite Element software SOFiSTiK. 
+This program automatically generaties load cases of interpolated imposed displacement in the Finite Element software SOFiSTiK. It does so by receiving a set of known imposed displacements to interpolate from and a set of nodes to interpolate to. 
 
 The primary use case is for applying interpolated settlement fields to a structure based on an array of points known beforehand, e.g. from a detailed geotechnical analysis. 
-
 
 ## How It Works
 
 **Note:** You need to have Python installed with the necessary dependencies to run this program. See section on Dependencies furhter down.
 
-1. Download the [Python script](https://github.com/timskovjacobsen/sofset/blob/master/sofset/sofset.py). 
+1. **Download the [Python script](https://github.com/timskovjacobsen/sofset/blob/master/sofset/sofset.py).**
 
 2. **Fill out the input Excel file called `known_settlement_values.xlsx`** with known points from a settlement curve and desired load case number, title and interpolation method.  
 Download the input file here: [known_settlement_values.xlsx](https://github.com/timskovjacobsen/sofset/raw/master/input/known_settlement_values.xlsx)
 3. **Create an output Excel file from Sofistik called `nodes_to_be_interpolated.xlsx`** containing node numbers and X- and Y-coordinates of the nodes where imposed displacements are to be applied. SOFiSTiK (2018 version at least) has a built-in feature for `.xlsx`-exports via ResultViewver, see e.g. [SOFiSTiK Excel Export](https://www.sofistik.de/documentation/2018/en/tutorials/listoftutorials/general-workflows/export_results_to_excel.htm). 
-4. 
-5. 
-...
+4. **Execute the script** from inside a Teddy task in SOFiSTiK by the command `+sys python settlement_interpolation/sofset.py`. See further explanation below. This creates a `.dat`-file with `SOFILOAD` code for each interpolated settlement load case.
+5. **Apply the `SOFILOAD` code for each load case to the FE-model** by running `+apply name_of_dat_file` from Teddy. The syntax for the generated `.dat`-files is `teddy_code_settlement_field_LC{load_case_number}.dat`
+
+After that, the load case should be visible in WinGraf.
 
 The SOFiSTiK model folder structure should look like this:
 ```
@@ -51,10 +51,10 @@ Running the Python script from inside a Teddy task in Sofistik is as easy as:
 ```
 This is the same way you would run the code from the command line (accept for the `+sys`, which is SOFiSTiK's way of invoking the command line from within a Teddy task).
 
-**Note:** The code assumes that in the same directory as the .sofistik file that the Teddy task resides in.
+**Note:** Since the script is being frun from the directory where the `.sofistik` files resides, it is necessary to prepend the `settlement_interpolation` folder to the path when calling the script.
 
-## Dependencies
-
+<!-- ## Dependencies
+The dependencies for the script are listed in the file called `requirements.txt`. -->
 
 ## Interpolation Method
 
@@ -71,7 +71,6 @@ The methods of interpolation are ***linear***, ***cubic*** or ***nearest***, the
    * Nodes that are to receive an imposed displacement must be filtered inside SOFiSTiK and output to an Excel file called ***settlement_nodes.xlsx***. Every node accounted for in this Excel file gets an imposed displacement applied to it.
    
    * All imposed displacements are applied at nodes in the z-direction according to the local coordinate system of the element that the node is tied to.  
-
 
 ## Current Limitations
 
