@@ -65,13 +65,7 @@ The methods of interpolation are ***linear***, ***cubic*** or ***nearest***, the
 ## Assumptions
 
 ### Excel Input File
-   * The name of the input Excel file must be ***known_settlement_values.xlsx***. The sheet with the values must have the same name. These are hardcoded into the script.
-
-   * *Only* yellow cells may be changed.
-   
-   * Yellow cells must retain their exact cell numbers as these are hardcoded inside the script. Thus, the user must refrain from creating new rows or columns.     
-   
-   * All cells that are not yellow are not used or read by the script. Thus, these can hold any information, notes etc. that the user desires. 
+   * The name of the input Excel file must be ***known_settlement_values.xlsx***. The sheet with the values must have the same name. These are hardcoded into the script.    
 
 ### SOFiSTiK      
    * Nodes that are to receive an imposed displacement must be filtered inside SOFiSTiK and output to an Excel file called ***settlement_nodes.xlsx***. Every node accounted for in this Excel file gets an imposed displacement applied to it.
@@ -83,8 +77,22 @@ The methods of interpolation are ***linear***, ***cubic*** or ***nearest***, the
 
 * Only four load combinations are supported (Although the code could easily be adjusted to support more). 
 
-* The program is limited to five control points (known points) per section. Although it is questionable whether more points would be practicle. See description in the section on Control Points
+* The program is limited to five control points (known points) per section. Although it is questionable whether having more points would be practicle. See description below.
 
-## Control Points (known points)
+## Locaition of Control Points (known points)
 
-Having too many control points can distort the interpolated field. Badly placed control point can show in the FE-results as very large sectional forces caused by the structure being "forced" down 
+Having too many or badly located control points can distort the interpolated field. The distortion is to be understood from a structural standpoint where abrupt geometry changes can lead to very large sectional forces from linear elastic FE-calculations. E.g. if two points are very close to eachother, even a very small difference in their imposed displacement value can have this effect. 
+
+Through testing on projects it has been discovered that using 2D-interpolation (i.e. in both X- and Y-direction) can lead to distortions when imposed displacement values are large, e.g. for long-term settlement cases. Even using constant Y-values in the same section can cause a non-uniform settlement in the section.  
+This distortion can be inspected visually by plotting isolines for the solved displacements.
+<!-- TODO: Show screenshots explaining this -->
+
+If this problem arises, consider whether variation in the Y-direction is really necessary or the model can live with having the settlements vary only in the longitudinal direction. When interpolating only in the X-direction, the isolines for solved displacements should be exactly uniform within each section.
+<!-- TODO: Show screenshots explaining this -->
+
+## Bugs and Improvements 
+If you have discovered a bug or wish for a new feature to be implemented, please create a Issue with a good description.
+
+<!-- ## Contributions -->
+
+
