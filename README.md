@@ -9,7 +9,7 @@ The primary use case is for applying interpolated settlement fields to a structu
 
 1. **Download the [Python script](https://github.com/timskovjacobsen/sofset/blob/master/sofset/sofset.py).**
 
-2. **Fill out the input Excel file called `known_settlement_values.xlsx`** with known points from a settlement curve and desired load case number, title and interpolation method.  
+2. **Fill out the input Excel file called `known_settlement_values.xlsm`** with known points from a settlement curve and desired load case number, title and interpolation method.  
 Download the input file here: [known_settlement_values.xlsx](https://github.com/timskovjacobsen/sofset/raw/master/input/known_settlement_values.xlsx)
 3. **Create an output Excel file from Sofistik called `nodes_to_be_interpolated.xlsx`** containing node numbers and X- and Y-coordinates of the nodes where imposed displacements are to be applied. SOFiSTiK (2018 version at least) has a built-in feature for `.xlsx`-exports via ResultViewver, see e.g. [SOFiSTiK Excel Export](https://www.sofistik.de/documentation/2018/en/tutorials/listoftutorials/general-workflows/export_results_to_excel.htm). 
 4. **Execute the script** from inside a Teddy task in SOFiSTiK by the command `+sys python settlement_interpolation/sofset.py`. See further explanation below. This creates a `.dat`-file with `SOFILOAD` code for each interpolated settlement load case.
@@ -21,7 +21,7 @@ The SOFiSTiK model folder structure should look like this:
 ```
 model_folder
 ├── settlement_interpolation        # Subfolder
-|   ├── known_settlements.xlsx      # Input Excel file to script
+|   ├── known_settlements.xlsm      # Input Excel file to script
 |   ├── sofset.py                   # Python script 
 |
 ├── model_name.sofistik             # Sofistik model
@@ -88,6 +88,9 @@ This distortion can be inspected visually by plotting isolines for the solved di
 
 If this problem arises, consider whether variation in the Y-direction is really necessary or the model can live with having the settlements vary only in the longitudinal direction. When interpolating only in the X-direction, the isolines for solved displacements should be exactly uniform within each section.
 <!-- TODO: Show screenshots explaining this -->
+
+## Excel Input Sheet Protection
+The input Excel sheet is by default protected in all cells that are not input cells to avoid changing the layout by mistake. The script assumes a certian layout in order to detect the input values correctly. If necessary, use the passwork `sofset` to clear the cell protection if you want to take notes in the sheet etc. Otherwise create new sheets to do so.
 
 ## Bugs and Improvements 
 If you have discovered a bug or wish for a new feature to be implemented, please create a Issue with a good description.
