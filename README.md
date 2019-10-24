@@ -1,5 +1,5 @@
 # sofset
-This program automatically generaties load cases of interpolated imposed displacement in the Finite Element software SOFiSTiK. It does so by receiving a set of known imposed displacements to interpolate from and a set of nodes to interpolate to. 
+This program automatically generates load cases of interpolated imposed displacement in the Finite Element software SOFiSTiK. It does so by receiving a set of known imposed displacements to interpolate from and a set of nodes to interpolate to. 
 
 The primary use case is for applying interpolated settlement fields to a structure based on an array of points known beforehand, e.g. from a detailed geotechnical analysis. 
 
@@ -86,7 +86,7 @@ The methods of interpolation are ***linear***, ***cubic*** or ***nearest***, the
 
 * The program is limited to five control points (known points) per section. Although it is questionable whether having more points would be practicle. See description below.
 
-## Locaition of Control Points (known points)
+## Location of Control Points (known points)
 
 Having too many or badly located control points can distort the interpolated field. The distortion is to be understood from a structural standpoint where abrupt geometry changes can lead to very large sectional forces from linear elastic FE-calculations. E.g. if two points are very close to eachother, even a very small difference in their imposed displacement value can have this effect. 
 
