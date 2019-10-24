@@ -125,7 +125,7 @@ def write_datfile(load_case_number, load_case_title, node_numbers, settlements,
 
     ### WRITE INTERPOLATED FIELD TO .DAT FILE AS TEDDY CODE ###
     # Write Teddy code for applying interpolated settlements to file
-    with open(f'{target_dir}\\teddy_code_settlement_field_LC{load_case_number}.dat', 'w') as file:
+    with open(f'{target_dir}\\settlement_LC{load_case_number}.dat', 'w') as file:
         file.write(f'''+PROG SOFILOAD  $ Plaxis settlement LC{load_case_number}
 HEAD Settlement interpolation for LC{load_case_number} - {load_case_title}
 UNIT TYPE 5
