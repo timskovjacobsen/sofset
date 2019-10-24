@@ -12,17 +12,17 @@ The primary use case is for applying interpolated settlement fields to a structu
 2. **Fill out the input Excel file called `known_settlement_values.xlsm`** with known points from a settlement curve and desired load case number, title and interpolation method.  
 
 3. **Create an output Excel file from Sofistik called `nodes_to_be_interpolated.xlsx`** containing node numbers and X- and Y-coordinates of the nodes where imposed displacements are to be applied. SOFiSTiK (2018 version at least) has a built-in feature for `.xlsx`-exports via ResultViewver, see e.g. [SOFiSTiK Excel Export](https://www.sofistik.de/documentation/2018/en/tutorials/listoftutorials/general-workflows/export_results_to_excel.htm). 
-4. **Execute the script** from inside a Teddy task in SOFiSTiK by the command `+sys python settlement_interpolation/sofset.py`. See further explanation below. This creates a `.dat`-file with `SOFILOAD` code for each interpolated settlement load case.
-5. **Apply the `SOFILOAD` code for each load case to the FE-model** by running `+apply name_of_dat_file` from Teddy. The syntax for the generated `.dat`-files is `teddy_code_settlement_field_LC{load_case_number}.dat`
+
+4. **Execute the script** from inside a Teddy task in SOFiSTiK by the command `+sys python insert_path_to_script`. See further explanation below. This creates a `.dat`-file with `SOFILOAD` code for each interpolated settlement load case.
+5. **Apply the `SOFILOAD` code for each load case to the FE-model** by running `+apply insert_name_of_dat_file` from Teddy. The syntax for the generated `.dat`-files is `settlement_LC{load_case_number}.dat`
 
 After that, the load case should be visible in WinGraf.
 
 The SOFiSTiK model folder structure should look like this:
 ```
 model_folder
-├── settlement_interpolation        # Subfolder
-|   ├── known_settlements.xlsm      # Input Excel file to script
-|   ├── sofset.py                   # Python script 
+├── Settlement_interpolation        # Subfolder
+|   ├── known_settlements.xlsm      # Input Excel file to script 
 |
 ├── model_name.sofistik             # Sofistik model
 ├── model_name.dwg                  # Sofiplus (autocad) model
@@ -33,6 +33,27 @@ model_folder
 ```
 **Note:** The two Excel files that the script reads must have the exact names specified above!
 
+## Run Script Directly from SOFiSTiK
+Running the Python script from inside a Teddy task in Sofistik is as easy as:
+
+```
++sys python insert_path_to_script
+```
+This is the same way you would run the code from the command line (accept for the `+sys`, which is SOFiSTiK's way of invoking the command line from within a Teddy task).
+
+E.g. if the script was located in the subfolder `Settlement_interpolation`, the call to it would look like:
+```
++sys python Settlement_interpolation\sofset.py
+```
+
+### Where to put the script
+The script (`sofset.py` file) can be placed whereever in the file system. Just make sure that you insert the correct path to it when calling it from Teddy. The code auto-detects the path from which it was invoked, i.e. the folder containing the `.sofistik` file. From there it navigates to the input files, so they have to comply with the folder structure shown above. 
+
+**It is recommended to keep the script in a central location and call it from there.** This way, every version of the Sofistik model refers to the same script and is elminated the need for creating new copies with each version. 
+
+<!-- ## Dependencies
+TODO: The dependencies for the script are listed in the file called `requirements.txt`. -->
+
 ### Visualization of interpolation
 The screenshot below shows the green control points (i.e. the known points) and the interpolated values in the FE-nodes that were input to the program
 ![3D_plot from script](https://github.com/timskovjacobsen/sofset/blob/assets/Interpolation_3D_plot.PNG)
@@ -42,19 +63,6 @@ The resul of applying the load cases in SOFiSTiK by executing the generated `.da
 ![3D_plot from script](https://github.com/timskovjacobsen/sofset/blob/assets/Settlements_interpolated_by_Python.PNG)
 
 ![3D_plot from script](https://github.com/timskovjacobsen/sofset/blob/assets/Settlements_interpolated_by_Python_XZ_plane.PNG)
-
-## Run Script Directly from SOFiSTiK
-Running the Python script from inside a Teddy task in Sofistik is as easy as:
-
-```
-+sys python settlement_interpolation/sofset.py
-```
-This is the same way you would run the code from the command line (accept for the `+sys`, which is SOFiSTiK's way of invoking the command line from within a Teddy task).
-
-**Note:** Since the script is being frun from the directory where the `.sofistik` files resides, it is necessary to prepend the `settlement_interpolation` folder to the path when calling the script.
-
-<!-- ## Dependencies
-TODO: The dependencies for the script are listed in the file called `requirements.txt`. -->
 
 ## Interpolation Method
 
