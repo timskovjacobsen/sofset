@@ -59,7 +59,7 @@ The screenshot below shows the green control points (i.e. the known points) and 
 ![3D_plot from script](https://github.com/timskovjacobsen/sofset/blob/assets/Interpolation_3D_plot.PNG)
 
 ### Application of load case in SOFiSTiK
-The resul of applying the load cases in SOFiSTiK by executing the generated `.dat`-files is shown below
+An example of applying the load cases in SOFiSTiK by executing a generated `.dat`-file is shown below:
 ![3D_plot from script](https://github.com/timskovjacobsen/sofset/blob/assets/Settlements_interpolated_by_Python.PNG)
 
 ![3D_plot from script](https://github.com/timskovjacobsen/sofset/blob/assets/Settlements_interpolated_by_Python_XZ_plane.PNG)
