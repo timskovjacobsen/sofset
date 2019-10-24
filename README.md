@@ -7,10 +7,10 @@ The primary use case is for applying interpolated settlement fields to a structu
 
 **Note:** You need to have Python installed with the necessary dependencies to run this program. See section on Dependencies furhter down.
 
-1. **Download the [Python script](https://github.com/timskovjacobsen/sofset/blob/master/sofset/sofset.py).**
+1. **Download the lastest release here: [sofset.zip](https://github.com/timskovjacobsen/sofset/releases/download/v0.1.0/sofset.zip).** This zip-folder contains the input `.xlsm` file and the script `sofset.py`.
 
 2. **Fill out the input Excel file called `known_settlement_values.xlsm`** with known points from a settlement curve and desired load case number, title and interpolation method.  
-Download the input file here: [known_settlement_values.xlsx](https://github.com/timskovjacobsen/sofset/raw/master/input/known_settlement_values.xlsx)
+
 3. **Create an output Excel file from Sofistik called `nodes_to_be_interpolated.xlsx`** containing node numbers and X- and Y-coordinates of the nodes where imposed displacements are to be applied. SOFiSTiK (2018 version at least) has a built-in feature for `.xlsx`-exports via ResultViewver, see e.g. [SOFiSTiK Excel Export](https://www.sofistik.de/documentation/2018/en/tutorials/listoftutorials/general-workflows/export_results_to_excel.htm). 
 4. **Execute the script** from inside a Teddy task in SOFiSTiK by the command `+sys python settlement_interpolation/sofset.py`. See further explanation below. This creates a `.dat`-file with `SOFILOAD` code for each interpolated settlement load case.
 5. **Apply the `SOFILOAD` code for each load case to the FE-model** by running `+apply name_of_dat_file` from Teddy. The syntax for the generated `.dat`-files is `teddy_code_settlement_field_LC{load_case_number}.dat`
