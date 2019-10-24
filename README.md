@@ -49,7 +49,7 @@ E.g. if the script was located in the subfolder `Settlement_interpolation`, the 
 ### Where to put the script
 The script (`sofset.py` file) can be placed whereever in the file system. Just make sure that you insert the correct path to it when calling it from Teddy. The code auto-detects the path from which it was invoked, i.e. the folder containing the `.sofistik` file. From there it navigates to the input files, so they have to comply with the folder structure shown above. 
 
-**It is recommended to keep the script in a central location and call it from there.** This way, every version of the Sofistik model refers to the same script and is elminated the need for creating new copies with each version. 
+**It is recommended to keep the script in a central location and call it from there.** This way, every version of the Sofistik model refers to the same script and it elminates the need for creating new copies with each version. 
 
 <!-- ## Dependencies
 TODO: The dependencies for the script are listed in the file called `requirements.txt`. -->
