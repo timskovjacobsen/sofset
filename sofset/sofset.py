@@ -286,16 +286,25 @@ def run_analysis(master_dict, directory_lookup='current', target_dir='current', 
 
         # Check for interpolation dimention and run analysis
         if '1d' in int_method:
-            # Perform 1D interpolation and store results (only X-coordinate varying)
-            f_int = interp1d(x_known, settlements_known, kind=method)
+            
+            try:
+                # Perform 1D interpolation and store results (only X-coordinate varying)
+                f_int = interp1d(x_known, settlements_known, kind=method)
 
-            # Sort X-coordinates of nodes and node numbers
-            sorted_indices = x_nodes.argsort()
-            x_nodes = x_nodes[sorted_indices]
-            node_no = node_no[sorted_indices]
+                # Sort X-coordinates of nodes and node numbers
+                sorted_indices = x_nodes.argsort()
+                x_nodes = x_nodes[sorted_indices]
+                node_no = node_no[sorted_indices]
 
-            # Extract interpolated settlemnt values at desired X-coordinates
-            settlements_interpolated = f_int(x_nodes)
+                # Extract interpolated settlemnt values at desired X-coordinates
+                settlements_interpolated = f_int(x_nodes)
+
+        except ValueError:
+            print(f'''1D interpolation couldn't be performed for LC{lc}. Check if the input X-values 
+                     are encompassing all the points where interpolated is desired.
+                     E.g. if the desired points to be interpolated have X-coordinates 
+                     x = (0, 100, 200), the input X-values must contain a point where X < 0 and one 
+                     where X > 200 (extrapolation is not allowed).''')
 
         elif '2d' in int_method:
             # Perform linear 2D interpolation (X,Y-coordinates varying)
