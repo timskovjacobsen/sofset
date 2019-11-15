@@ -184,8 +184,8 @@ def read_excel_nodes(directory_lookup='current', filename='nodes_to_be_interpola
     # Remove leading or trailing white space from column names
     df_nodes.columns = df_nodes.columns.str.strip()
 
-    x_nodes, y_nodes, z_nodes = df_nodes['X [m]'], df_nodes['Y [m]'], df_nodes['Z [m]']
-    node_no = df_nodes['NR']
+    x_nodes, y_nodes = df_nodes['X [m]'].values, df_nodes['Y [m]'].values
+    z_nodes, node_no = df_nodes['Z [m]'].values, df_nodes['NR'].values
 
     return x_nodes, y_nodes, z_nodes, node_no
 
@@ -223,10 +223,10 @@ def plot_3D_results(lc, master_dict, settlements_interpolated):
         ax = plt.subplots()
 
         # Plot known points
-        ax.plot(x_known, settlements_known, '.', color='limegreen')
+        ax[0].plot(x_known, settlements_known, '.', color='limegreen')
 
         # Plot interpolated points
-        ax.plot(x_known, settlements_known, '.', color='cornflowerblue', s=0.1)
+        ax[0].plot(x_known, settlements_known, '.', color='cornflowerblue', s=0.1)
 
     else:
         raise Exception("The interpolation method ('int_method') needs to specify 1D or 2D and linear or cubic.")
@@ -238,20 +238,19 @@ def plot_3D_results(lc, master_dict, settlements_interpolated):
     plt.show()
 
 
-def filter_nodes_for_Zmin(df, Zmin_allowable):
+def filter_nodes_for_Z(df, Zmax_allowable):
     '''
     Return df filtered by filter_condition.
 
-    The parameters 'Zmax_allowable' and 'Zmin_allowable' are mutually exclusive and at 
-    least one of them must be specified.
+    Currently only Zmax_allowable is available.
 
     Args: 
         df (dataframe)          : Pandas dataframe with a column named 'Z [m]' present
-        Zmin_allowable (number) : Min allowable Z-value for resulting df
+        Zmax_allowable (number) : Max allowable Z-value for resulting df
     '''
 
     try:
-        return df[df['Z [m]'] < Zmin_allowable]
+        return df[df['Z [m]'] < Zmax_allowable]
     
     except KeyError:
         print('KeyError: Make sure the input dataframe contains a column named "Z [m]".')
