@@ -35,7 +35,7 @@ def read_known_settlements(file_name, skiprows, load_case_dict, points_per_secti
     x = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows,
                       usecols=[1]).values.flatten()
     y = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows,
-                      usecols=[2,3,4,5,6]).values.flatten()  # FIXME Assumes points_per_section=5
+                      usecols=[2,3,4,5,6]).values.flatten() 
 
     # Get indices where values are not NaN in the array of y-coordinates
     idx_no_nan = np.where(~np.isnan(y))
@@ -43,6 +43,7 @@ def read_known_settlements(file_name, skiprows, load_case_dict, points_per_secti
     n = points_per_section
 
     for i, lc in enumerate(load_case_dict.keys()):
+
 
         # Insert Y-array for load case
         load_case_dict[lc]['Y'] = y[idx_no_nan]
@@ -52,8 +53,8 @@ def read_known_settlements(file_name, skiprows, load_case_dict, points_per_secti
 
         # Create the list specifying which columns to take from the Excel sheet for creating dataframe
         #   If load case is 1D, take only the first row, otherwise take the next four rows.
-        # FIXME List size does not currently scale with points_per_section (assumes points_per_section=5) 
-        cols = [7 + n*i] if '1D' in int_method else [7+n*i, 7+n*i+1, 7+n*i+2, 7+n*i+3, 7+n+i*4]
+        row1 = 7 + n*i
+        cols = [row1] if '1D' in int_method else [row1, row1+1, row1+2, row1+3, row1+4]
  
         # Read the columns from Excel file into dataframe
         df_temp = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows, usecols=cols)
@@ -74,7 +75,9 @@ def read_known_settlements(file_name, skiprows, load_case_dict, points_per_secti
             load_case_dict[lc]['Z'] = df_temp.values.flatten()[idx_no_nan]
 
             # Repeat all X-values 'points_per_section' times
-            x_temp = np.tile(x, points_per_section)
+            x_temp = np.repeat(x, points_per_section)
+
+            # Save x-coordionates in dict
             load_case_dict[lc]['X'] = x_temp[idx_no_nan]
 
     return load_case_dict
@@ -113,19 +116,19 @@ def interpolate_settlements2D(x_known, y_known, settlement_known, x, y, method='
 
 
 def write_datfile(load_case_number, load_case_title, node_numbers, settlements, 
-                  target_dir='current'):
+                  dir_target='current'):
     '''
     Write a .dat file with Teddy (SOFiSTiK input) code for applying input settlement field as a 
     load case.
     '''
 
-    if target_dir == 'current':
+    if dir_target == 'current':
         # Get directory where this module resides
-        target_dir = os.getcwd()
+        dir_target = os.getcwd()
 
     ### WRITE INTERPOLATED FIELD TO .DAT FILE AS TEDDY CODE ###
     # Write Teddy code for applying interpolated settlements to file
-    with open(f'{target_dir}\\settlement_LC{load_case_number}.dat', 'w') as file:
+    with open(f'{dir_target}\\settlement_LC{load_case_number}.dat', 'w') as file:
         file.write(f'''+PROG SOFILOAD  $ Plaxis settlement LC{load_case_number}
 HEAD Settlement interpolation for LC{load_case_number} - {load_case_title}
 UNIT TYPE 5
@@ -169,46 +172,69 @@ def print_status_report(x_nodes, y_nodes, settlement_interpolated, load_case):
     print('-------------------------------------------')
 
 
-def read_excel_nodes(directory_lookup='current', filename='nodes_to_be_interpolated.xlsx', sheet_name='XLSX-Export'):
+def read_excel_nodes(dir_lookup='current', filename='nodes_to_be_interpolated.xlsx', sheet_name='XLSX-Export'):
     '''
     Return the x-, y- and z-coordinates as well as node numbers for nodes present in 'filename'.
     '''
 
-    if directory_lookup == 'current':
+    if dir_lookup == 'current':
         # Get directory where this module resides
-        directory_lookup = os.getcwd()
+        dir_lookup = os.getcwd()
 
     # Read Excel file with node numbers and their coordinates into a dataframe
-    df_nodes = pd.read_excel(f'{directory_lookup}\\{filename}', sheet_name=sheet_name)
+    df_nodes = pd.read_excel(f'{dir_lookup}\\{filename}', sheet_name=sheet_name)
 
     # Remove leading or trailing white space from column names
     df_nodes.columns = df_nodes.columns.str.strip()
 
-    x_nodes, y_nodes, z_nodes = df_nodes['X [m]'], df_nodes['Y [m]'], df_nodes['Z [m]']
-    node_no = df_nodes['NR']
+    x_nodes, y_nodes = df_nodes['X [m]'].values, df_nodes['Y [m]'].values
+    z_nodes, node_no = df_nodes['Z [m]'].values, df_nodes['NR'].values
 
     return x_nodes, y_nodes, z_nodes, node_no
 
+def load_cases(file_name, sheet_name, skiprows):
 
-def plot_3D_results(lc, master_dict, settlements_interpolated):
+    # Read load cases, their titles and the desired interpolation method
+    df_load_cases = pd.read_excel(file_name, sheet_name=sheet_name, 
+                                  skiprows=skiprows-2, usecols=range(6, 26))
+
+    # Retain only columns starting with integers of any length (must be LC numbers)
+    df_load_cases = df_load_cases.filter(regex='^\d+', axis=1).loc[:1]
+
+    # Convert df of LCs, titles and int_method to dict of dicts, one for each LC
+    #   format: { lc_number: {0: 'title_here', 1: 'method_here'} }
+    load_case_dict = df_load_cases.to_dict(orient='dict')
+
+    # Rename keys in inner dictionaries
+    #   format: { lc_number: {title: 'title_here', 'int_method': 'method_here'} }
+    for dic in load_case_dict.values():
+        dic['title'] = dic.pop(0)
+        dic['int_method'] = dic.pop(1)
+
+    return load_case_dict
+
+
+def plot_3D_results(xycoords, node_no, lc, master_dict, settlements_interpolated):
     '''
     Plot the result of the interpolation as a 3D scatter plot showing the known points that the
     interpolation is based on in green and the interpolated points in blue.
     '''
 
     # Read (x, y)-coordinates and numbers of nodes to be interpolated (read from Excel)
-    x_nodes, y_nodes, _, node_no = read_excel_nodes()   # TODO Excel file name should be input
+    # x_nodes, y_nodes, _, node_no = read_excel_nodes()   # TODO Excel file name should be input
+    x_nodes, y_nodes = xycoords
 
-    # Extract known coordinates and interpo method from master dict
+    # Extract known coordinates and interpolation method from master dict
     x_known = master_dict[lc]['X']
     y_known = master_dict[lc]['Y']
     settlements_known = master_dict[lc]['Z']
     int_method = master_dict[lc]['int_method'].lower()
 
-    # Create figure object
-    fig = plt.figure()
 
     if '2d' in int_method:
+        # Create figure object
+        fig = plt.figure()
+
         # Create axis object for 3D plot (Visualizing 2D interpolations)
         ax = fig.add_subplot(111, projection='3d')
 
@@ -220,13 +246,13 @@ def plot_3D_results(lc, master_dict, settlements_interpolated):
 
     elif '1d' in int_method:
         # Create axis object for 2D plot (Visualizing 1D interpolations)
-        ax = plt.subplots()
+        _, ax = plt.subplots()
 
         # Plot known points
-        ax.plot(x_known, settlements_known, '.', color='limegreen')
+        ax.plot(x_known, settlements_known, '.', color='limegreen', markersize=8)
 
         # Plot interpolated points
-        ax.plot(x_known, settlements_known, '.', color='cornflowerblue', s=0.1)
+        ax.plot(x_nodes, settlements_interpolated, '-', color='cornflowerblue')
 
     else:
         raise Exception("The interpolation method ('int_method') needs to specify 1D or 2D and linear or cubic.")
@@ -238,26 +264,25 @@ def plot_3D_results(lc, master_dict, settlements_interpolated):
     plt.show()
 
 
-def filter_nodes_for_Zmin(df, Zmin_allowable):
+def filter_nodes_for_Z(df, Zmax_allowable):
     '''
     Return df filtered by filter_condition.
 
-    The parameters 'Zmax_allowable' and 'Zmin_allowable' are mutually exclusive and at 
-    least one of them must be specified.
+    Currently only Zmax_allowable is available.
 
     Args: 
         df (dataframe)          : Pandas dataframe with a column named 'Z [m]' present
-        Zmin_allowable (number) : Min allowable Z-value for resulting df
+        Zmax_allowable (number) : Max allowable Z-value for resulting df
     '''
 
     try:
-        return df[df['Z [m]'] < Zmin_allowable]
+        return df[df['Z [m]'] < Zmax_allowable]
     
     except KeyError:
         print('KeyError: Make sure the input dataframe contains a column named "Z [m]".')
 
 
-def run_analysis(master_dict, directory_lookup='current', target_dir='current', plot_results=False):
+def run_analysis(master_dict, dir_lookup='current', dir_target='current', plot_results=False):
 
     for lc in master_dict:
 
@@ -269,12 +294,12 @@ def run_analysis(master_dict, directory_lookup='current', target_dir='current', 
         int_method = master_dict[lc]['int_method'].lower()
         lc_title = master_dict[lc]['title']
 
-        if directory_lookup == 'current':
+        if dir_lookup == 'current':
             # Get directory where script is run from
-            directory_lookup = os.getcwd()
+            dir_lookup = os.getcwd()
 
         # Read (x, y)-coordinates and numbers of nodes to be interpolated (read from Excel)
-        x_nodes, y_nodes, _, node_no = read_excel_nodes(directory_lookup=directory_lookup)
+        x_nodes, y_nodes, _, node_no = read_excel_nodes(dir_lookup=dir_lookup)
 
         # Extract chosen method for interpolation
         if 'linear' in int_method:
@@ -319,15 +344,15 @@ def run_analysis(master_dict, directory_lookup='current', target_dir='current', 
         print_status_report(x_nodes, y_nodes, settlements_interpolated, lc)
 
         # Determine directory for saving the dat-file
-        if target_dir == 'current_dir':
+        if dir_target == 'current_dir':
             # Get current working directory (where module is run from, i.e. Sofistik dir)
-            target_dir = os.getcwd()
+            dir_target = os.getcwd()
 
         # Write interpolated field to .dat file as Teddy code
-        write_datfile(lc, lc_title, node_no, settlements_interpolated, target_dir)
+        write_datfile(lc, lc_title, node_no, settlements_interpolated, dir_target)
 
         if plot_results:
-            plot_3D_results(lc, master_dict, settlements_interpolated)
+            plot_3D_results((x_nodes, y_nodes), node_no, lc, master_dict, settlements_interpolated)
 
 
 if __name__ == "__main__":
@@ -339,21 +364,7 @@ if __name__ == "__main__":
     sheet_name = 'known_settlement_values'
     skiprows = 10
 
-    # Read load cases, their titles and the desired interpolation method
-    df_load_cases = pd.read_excel(file_name, sheet_name=sheet_name, skiprows=skiprows-2, usecols=range(6, 26))
-
-    # Retain only columns starting with integers of any length (must be the load case numbers)
-    df_load_cases = df_load_cases.filter(regex='^\d+',axis=1).loc[:1]
-
-    # Convert dataframe of load cases, titles and int_method to a dict of dicts, one for each load case
-    #   format: { lc_number: {0: 'title_will_be_here', 1: 'method_will_be_here'} }
-    load_case_dict = df_load_cases.to_dict(orient='dict')
-
-    # Rename keys in inner dictionaries
-    #   format: { lc_number: {title: 'title_will_be_here', 'int_method': 'method_will_be_here'} }
-    for dic in load_case_dict.values():
-        dic['title'] = dic.pop(0)
-        dic['int_method'] = dic.pop(1)
+    load_case_dict = load_cases(file_name, sheet_name, skiprows=skiprows)
 
     # Create master dictionary with load cases
     d = read_known_settlements(file_name, skiprows, load_case_dict, points_per_section=5, sheet_name='known_settlement_values')
