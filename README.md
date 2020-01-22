@@ -8,7 +8,7 @@ The primary use case is for applying interpolated settlement fields to a structu
 
 **Note:** You need to have Python installed with the necessary dependencies to run this program. See section on Dependencies further down.
 
-1. **Download the latest release here: [sofset_v0.1.1.zip](https://github.com/timskovjacobsen/sofset/releases/download/v0.1.1/sofset.zip).** This zip-folder contains the input `.xlsm` file and the script `sofset.py`.
+1. **Download the lastest release here: [sofset_v0.2.1.zip](https://github.com/timskovjacobsen/sofset/releases/download/v0.2.1/sofset.zip).** This zip-folder contains the input `.xlsm` file and the script `sofset.py`.
 
 2. **Fill out the input Excel file called `known_settlement_values.xlsm`** with known points from a settlement curve and desired load case number, title and interpolation method.  
 
