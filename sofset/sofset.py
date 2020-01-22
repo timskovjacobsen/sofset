@@ -1,14 +1,6 @@
-import numpy as np
-import pandas as pd
-import os
-import sys
-from scipy.interpolate import griddata
-from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+
 
 '''
-* Consider better names for the output .dat files
 
 NOTE Some parameters in this script are hardcoded as they are dictated from
      the layout of the Excel file that serves as the settlement field input.
@@ -24,7 +16,15 @@ TODO Create possibility for choosing load type for each load case
      instantly after calculation)
 
 '''
-# TODO The main dictionary could be renamed to master_dict or something else
+
+import numpy as np
+import pandas as pd
+import os
+import sys
+from scipy.interpolate import griddata
+from scipy.interpolate import interp1d
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def read_known_settlements(file_name, skiprows, load_case_dict,
@@ -140,9 +140,23 @@ def interpolate_settlements2D(x_known, y_known, settlement_known, x, y,
 
 def write_datfile(load_case_number, load_case_title, node_numbers,
                   settlements, dir_target='current'):
-    '''
-    Write a .dat file with Teddy (SOFiSTiK input) code for applying input
-    settlement field as a load case.
+    '''Write .dat file with Teddy input code to apply load cases.
+    
+    The load cases represent a settlement field with the load type 'SL', which
+    defined a short term load in Sofistik.
+
+    Parameters
+    ----------
+    load_case_number : int
+        Desired load case number.
+    load_case_title : str
+        Title for load case.
+    node_numbers : list or list-like
+        Node numbers that should receive a settlement in the given load case.
+    settlements : list or list-like
+        Settlement values to be paired with `node_numbers` in the given load case.
+    dir_target : str
+        Path to directory to dump the output .dat file.
     '''
     if dir_target == 'current':
         # Get directory where this module resides
@@ -204,9 +218,16 @@ def print_status_report(x_nodes, y_nodes, settlement_interpolated, load_case):
 def read_excel_nodes(dir_lookup='current',
                      filename='nodes_to_be_interpolated.xlsx',
                      sheet_name='XLSX-Export'):
-    '''
-    Return the x-, y- and z-coordinates as well as node numbers for nodes
-    present in 'filename'.
+    '''Return (x, y, z)-coordinates and node numbers for all nodes.
+    
+    Parameters
+    ----------
+    dir_lookup : str
+        Directory where the Excel file is located.
+    filename : str
+        Filename of Excel file with extension (.xlsx or .xlsm).
+    sheet_name : str
+        Sheet name where node data is located within the Excel file
     '''
     if dir_lookup == 'current':
         # Get directory where this module resides
@@ -219,6 +240,7 @@ def read_excel_nodes(dir_lookup='current',
     # Remove leading or trailing white space from column names
     df_nodes.columns = df_nodes.columns.str.strip()
 
+    # Extract node coordinates and node numbers and return them
     x_nodes, y_nodes = df_nodes['X [m]'].values, df_nodes['Y [m]'].values
     z_nodes, node_no = df_nodes['Z [m]'].values, df_nodes['NR'].values
 
@@ -226,13 +248,30 @@ def read_excel_nodes(dir_lookup='current',
 
 
 def load_cases(file_name, sheet_name, skiprows):
+    '''Return a dictionary of load case data from Excel file.
+
+    Parameters
+    ----------
+    file_name : str
+        Name of Excel file to read, including file extention (.xlsx or .xlsm)
+    sheet_name : str
+        Name of sheet where the data for load cases is stored.
+    skiprows : int
+        Number of beginning rows to skip when reading the Excel file
+
+    Returns
+    -------
+    dict
+        A dictionary containing a subdictionary for each load case and its
+        metadata. The subdictionaries for each load case have the format:
+        {lc_number: {title: 'title_here', 'int_method': 'method_here'}}
+    '''
 
     # Read load cases, their titles and the desired interpolation method
     df_load_cases = pd.read_excel(file_name, sheet_name=sheet_name,
                                   skiprows=skiprows-2, usecols=range(6, 26))
 
     # Retain only columns starting with integers of any length
-    # (must be LC numbers)
     df_load_cases = df_load_cases.filter(regex='^\d+', axis=1).loc[:1]
 
     # Convert df of LCs, titles and int_method to dict of dicts,
@@ -329,6 +368,19 @@ def filter_nodes_for_Z(df, Zmax_allowable):
 
 def run_analysis(master_dict, dir_lookup='current', dir_target='current',
                  plot_results=False):
+    '''Run interpolation analysis and write .dat file in Teddy input language.
+
+    Parameters
+    ----------
+    master_dict : dict
+        Dictionary ...
+    dir_lookup : str
+        Directory ...
+    dir_target : str
+        Directory ...
+    plot_results : bool, optional
+        Whether to plot the interpolated results after the analysis. 
+    '''
 
     for lc in master_dict:
 
@@ -356,7 +408,7 @@ def run_analysis(master_dict, dir_lookup='current', dir_target='current',
             # Set method to cubic interpolation
             method = 'cubic'
 
-        # Check for interpolation dimention and run analysis
+        # Check for interpolation dimension and run analysis
         if '1d' in int_method:
 
             try:
@@ -377,9 +429,8 @@ def run_analysis(master_dict, dir_lookup='current', dir_target='current',
                         Check if the input X-values are encompassing all the
                          points where interpolated is desired.
                         E.g. if the desired points to be interpolated have
-                         X-coordinates.
-                        x = (0, 100, 200), the input X-values must contain a
-                         point where X < 0 and one where X > 200
+                         X-coordinates x = (0, 100, 200), the input X-values 
+                         must contain a point where X < 0 and one where X > 200
                          (extrapolation is not allowed).''')
 
         elif '2d' in int_method:
@@ -406,6 +457,7 @@ def run_analysis(master_dict, dir_lookup='current', dir_target='current',
         write_datfile(lc, lc_title, node_no,
                       settlements_interpolated, dir_target)
 
+        # Plot results if was chosen to do so in the function call
         if plot_results:
             plot_3D_results((x_nodes, y_nodes), node_no, lc,
                             master_dict, settlements_interpolated)
@@ -428,5 +480,6 @@ if __name__ == "__main__":
                                sheet_name='known_settlement_values')
 
     # Interpolate settlements and create dat-files
-    # FIXME Results can't be plotted as of now
     run_analysis(d, plot_results=False)
+
+    # FIXME Results can't be plotted as of now
