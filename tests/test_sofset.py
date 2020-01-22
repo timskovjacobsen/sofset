@@ -1,14 +1,16 @@
 
+# Standard library imports
 import sys
 import os
 
-# Insert path for root project folder in sys.path to make that point of origin for navigation
-sys.path.insert(0, os.path.abspath('.'))
-
+# Third party imports
 # import pytest
 
-from sofset import sofset
+# Insert path to module to test in sys.path
+sys.path.insert(0, os.path.abspath('./sofset'))
 
+# Import main project module
+import sofset   # noqa
 
 
 if __name__ == '__main__':
@@ -23,9 +25,9 @@ if __name__ == '__main__':
 
     # Create master dictionary with load cases
     d = sofset.read_known_settlements(file_name, skiprows, load_case_dict,
-                            points_per_section=5, sheet_name='known_settlement_values')
+                                      points_per_section=5,
+                                      sheet_name='known_settlement_values')
 
     # Interpolate settlements and create dat-files
     testdir = 'tests\\testdata'
     sofset.run_analysis(d, dir_lookup=testdir, dir_target=testdir, plot_results=True)
-

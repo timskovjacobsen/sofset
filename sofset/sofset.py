@@ -20,11 +20,11 @@ TODO Create possibility for choosing load type for each load case
 import numpy as np
 import pandas as pd
 import os
-import sys
+# import sys
 from scipy.interpolate import griddata
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D     # noqa
 
 
 def read_known_settlements(file_name, skiprows, load_case_dict,
@@ -141,7 +141,7 @@ def interpolate_settlements2D(x_known, y_known, settlement_known, x, y,
 def write_datfile(load_case_number, load_case_title, node_numbers,
                   settlements, dir_target='current'):
     '''Write .dat file with Teddy input code to apply load cases.
-    
+
     The load cases represent a settlement field with the load type 'SL', which
     defined a short term load in Sofistik.
 
@@ -196,8 +196,8 @@ def print_status_report(x_nodes, y_nodes, settlement_interpolated, load_case):
          defined by known points (extrapolation not supported).''')
         nans = np.argwhere(np.isnan(settlement_interpolated))
         print(
-            f'         Number of nan values are {len(nans)} out of
-            {len(settlement_interpolated)} total values.')
+            f'''         Number of nan values are {len(nans)} out of
+            {len(settlement_interpolated)} total values.''')
 
         # Extract X- and Y-coordinates and round to 1 digit
         x_nans = np.round(x_nodes[nans.flatten()], 1)
@@ -219,7 +219,7 @@ def read_excel_nodes(dir_lookup='current',
                      filename='nodes_to_be_interpolated.xlsx',
                      sheet_name='XLSX-Export'):
     '''Return (x, y, z)-coordinates and node numbers for all nodes.
-    
+
     Parameters
     ----------
     dir_lookup : str
@@ -379,7 +379,7 @@ def run_analysis(master_dict, dir_lookup='current', dir_target='current',
     dir_target : str
         Directory ...
     plot_results : bool, optional
-        Whether to plot the interpolated results after the analysis. 
+        Whether to plot the interpolated results after the analysis.
     '''
 
     for lc in master_dict:
@@ -429,7 +429,7 @@ def run_analysis(master_dict, dir_lookup='current', dir_target='current',
                         Check if the input X-values are encompassing all the
                          points where interpolated is desired.
                         E.g. if the desired points to be interpolated have
-                         X-coordinates x = (0, 100, 200), the input X-values 
+                         X-coordinates x = (0, 100, 200), the input X-values
                          must contain a point where X < 0 and one where X > 200
                          (extrapolation is not allowed).''')
 
