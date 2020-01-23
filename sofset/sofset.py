@@ -1,19 +1,23 @@
 
 
-'''
+'''Module for generation of sofistik input files for settlement load cases
 
-NOTE Some parameters in this script are hardcoded as they are dictated from
-     the layout of the Excel file that serves as the settlement field input.
-     It is the purpose that the Excel file has as rigid a layout as possible
-     to make the data treatment easier.
-     E.g. it is assumed that the X-coordinates are always in the column "B"
-     in the Excel file, and that there is exactly five data points available
-     for each cross section.
-     These restrictions are to be controlled via the Excel sheet.
+Notes
+-----
+Some parameters in this script are hardcoded as they are dictated from
+the layout of the Excel file that serves as the settlement field input.
+It is the purpose that the Excel file has as rigid a layout as possible
+to make the data treatment easier.
+E.g. it is assumed that the X-coordinates are always in the column "B"
+in the Excel file, and that there is exactly five data points available
+for each cross section.
+These restrictions are to be controlled via the Excel sheet.
 
-TODO Create possibility for choosing load type for each load case
-     ['SL', 'G', ...]. Should default to 'SL' (short term load, taken away
-     instantly after calculation)
+Todo
+-----
+* Create possibility for choosing load type for each load case
+  ['SL', 'G', ...]. Should default to 'SL' (short term load, taken away
+  instantly after calculation)
 
 '''
 
@@ -31,8 +35,37 @@ def read_known_settlements(file_name, skiprows, load_case_dict,
                            points_per_section=5,
                            sheet_name='known_settlement_values'):
     '''
-    Return load_case_dict updated to include (X, Y, Z)-coordinate arrays,
+    Return dictionary with known settlement points included.
+
+    Updates `load_case_dict` to include (X, Y, Z)-coordinate arrays,
     where Z represents the known settlements.
+
+    Parameters
+    ----------
+    filename : str
+        Name of Excel file where known settlement points are stored.
+    skiprows : int
+        Number of rows to skip when reading the Excel file.
+    load_case_dict : dict
+        Dictionary containing data about settlement load cases. This is
+        the dictionary that gets updated and returned.
+    points_per_section : int, optional
+        Number of maximum values that can be input per section. Defaults
+        to 5.
+    sheet_name : str
+        Name of sheet to read in the Excel file.
+
+    Returns
+    -------
+    dict
+        Dictionary including point coordinates with known (or prescribed)
+        settlement values along with the actual settlement values.
+
+    Notes
+    -----
+    The number of points per section is currently set to 5, which is
+    controlled in the input spreadsheet. Thus, this is currently the only
+    valid value.
     '''
     if points_per_section != 5:
         raise Exception('''Arg points_per_section is currently only allowed to
@@ -58,9 +91,8 @@ def read_known_settlements(file_name, skiprows, load_case_dict,
         int_method = load_case_dict[lc]['int_method']
 
         # Create the list specifying which columns to take from the Excel
-        # sheet for creating dataframe
-        #   If load case is 1D, take only the first row, otherwise take the
-        #   next four rows.
+        # sheet for creating dataframe. If load case is 1D, take only the
+        # first row, otherwise take the next four rows.
         row1 = 7 + n*i
         cols = [row1] if '1D' in int_method else [row1, row1+1, row1+2, row1+3,
                                                   row1+4]
@@ -71,8 +103,6 @@ def read_known_settlements(file_name, skiprows, load_case_dict,
 
         # Extract settlements (here denoted Z suffixed by the load case number)
         if '1D' in int_method:
-            # NOTE: No Y-values in this scenario
-
             # In 1D case, take all values as flattened array
             load_case_dict[lc]['Z'] = df_temp.values.flatten()
 
@@ -81,9 +111,8 @@ def read_known_settlements(file_name, skiprows, load_case_dict,
 
         elif '2D' in int_method:
             # In 2D case take only values that have valid Y-values associated
-            # as flattened array
-            #   Valid values has corresponding value in the Y-array that are
-            #   not nan
+            # as flattened array. Valid values has corresponding value in the
+            # Y-array that are not nan
             load_case_dict[lc]['Z'] = df_temp.values.flatten()[idx_no_nan]
 
             # Repeat all X-values 'points_per_section' times
@@ -159,7 +188,7 @@ def write_datfile(load_case_number, load_case_title, node_numbers,
         Path to directory to dump the output .dat file.
     '''
     if dir_target == 'current':
-        # Get directory where this module resides
+        # Set target directory for the saved file to current working directory
         dir_target = os.getcwd()
 
     # --- WRITE INTERPOLATED FIELD TO .DAT FILE AS TEDDY CODE ---
@@ -180,8 +209,6 @@ LC {load_case_number} type 'SL' fact 1.0 facd 0.0 titl '{load_case_title}'  \n
 def print_status_report(x_nodes, y_nodes, settlement_interpolated, load_case):
     '''
     Print a status report summarizing the interpolation for each load case.
-
-    TODO Is this function totally adapted to handle both 1D and 2D interp.?
     '''
     print('--------------------------------------------')
     print('RESULTS FROM SETTLEMENT INTERPOLATION SCRIPT')
@@ -190,14 +217,23 @@ def print_status_report(x_nodes, y_nodes, settlement_interpolated, load_case):
     # Check if interpolated settlements have any nan values
     print(f'    LC{load_case}:')
     if np.isnan(settlement_interpolated).any():
-        print('         INFO:')
-        print("         Some interpolated settlement values are 'nan'.")
-        print('''         This is probably because they fall out of the region
-         defined by known points (extrapolation not supported).''')
+        print('''
+    ### --- INFO --- ###:
+    Some interpolated settlement values are 'nan'.
+    This is probably because they fall out of the region
+    defined by known points (extrapolation not supported).
+
+    The input field must encompass all the points where
+    interpolated is desired.
+    E.g. if the desired points for a 1D interpolation are
+    X-coordinates x = (0, 100, 200), the input X-values
+    must contain a point where X < 0 and one where X > 200''')
+
         nans = np.argwhere(np.isnan(settlement_interpolated))
+        no_all = len(settlement_interpolated)
         print(
-            f'''         Number of nan values are {len(nans)} out of
-            {len(settlement_interpolated)} total values.''')
+            f'''
+    Number of nan values are {len(nans)} out of {no_all} total values.''')
 
         # Extract X- and Y-coordinates and round to 1 digit
         x_nans = np.round(x_nodes[nans.flatten()], 1)
@@ -205,10 +241,10 @@ def print_status_report(x_nodes, y_nodes, settlement_interpolated, load_case):
         nan_coords = list(zip(x_nans, y_nans))
 
         print(
-            f'''         (X, Y)-coordinates of points that failed to
-             interpolate are:\n{nan_coords} ''')
-        # TODO: Replace those nan-values with 0 and make sure they are colored
-        #       red in the plot
+            f'''
+    The interpolation can be visually inspected in the generated
+    PNG-file. It will reveal the locations of the nan-values.
+    (X, Y)-coordinates of points that failed to interpolate are:\n{nan_coords} ''')
 
     else:
         print('         All values interpolated successfully!')
@@ -288,17 +324,14 @@ def load_cases(file_name, sheet_name, skiprows):
     return load_case_dict
 
 
-def plot_3D_results(xycoords, node_no, lc, master_dict,
-                    settlements_interpolated):
+def plot_interpolation(xycoords, node_no, lc, master_dict,
+                       settlements_interpolated, png_targetdir='current'):
     '''
     Plot the result of the interpolation as a 3D scatter plot showing
     the known points that the interpolation is based on in green and
     the interpolated points in blue.
     '''
-    # Read (x, y)-coordinates and numbers of nodes to be interpolated
-    # (read from Excel)
-    # TODO Excel file name should be input
-    # x_nodes, y_nodes, _, node_no = read_excel_nodes()
+    # Extract x- and y-coordinates
     x_nodes, y_nodes = xycoords
 
     # Extract known coordinates and interpolation method from master dict
@@ -316,33 +349,97 @@ def plot_3D_results(xycoords, node_no, lc, master_dict,
 
         # Plot known settlement points
         ax.scatter(x_known, y_known, settlements_known,
-                   '-.', color='limegreen')
+                   '-.', color='limegreen', label='Known points')
 
         # Plot interpolated field
         ax.scatter(x_nodes, y_nodes, settlements_interpolated,
-                   '.', color='cornflowerblue', s=0.1)
+                   '.', color='cornflowerblue', s=0.1, label='Interpolated points')
+
+        # Create separate array of nan-values, if there are any
+        if np.isnan(settlements_interpolated).any():
+            # Nan-values are present, extract indices where values are nan
+            idx_nan = np.where(np.isnan(settlements_interpolated))
+
+            # Create array x-values where settlement is nan
+            x_nan = x_nodes[idx_nan]
+            y_nan = y_nodes[idx_nan]
+            z_nan_temp = settlements_interpolated[idx_nan]
+            z_nan = np.nan_to_num(z_nan_temp)
+
+            # Plot all nan-values with y=0 and make them red
+            ax.scatter(x_nan, y_nan, z_nan, color='red', s=0.1,
+                       label="NaN (interp. failed)")
+
+        # Set titles and activate legend
+        ax.set_title(f'Settlement interpolation for LC{lc}')
+        ax.set_xlabel('Chainage [m]')
+        ax.set_ylabel('y [mm]')
+        ax.set_zlabel('Settlement [mm]')
+        plt.legend(loc='center left', bbox_to_anchor=(-0.15, 0.5), fontsize='small')
+
+        # Define name for png file to save
+        png_name = f'LC{lc}_settl_interp_plot.png'
+
+        if png_targetdir == 'current':
+            # Save figure
+            fig.savefig(png_name)
+        else:
+            # Save figure in the folder that was input
+            fig.savefig(f'{png_targetdir}\\{png_name}')
 
     elif '1d' in int_method:
-        # Create axis object for 2D plot (Visualizing 1D interpolations)
-        _, ax = plt.subplots()
-
-        # Plot known points
-        ax.plot(x_known, settlements_known, '.',
-                color='limegreen', markersize=8)
-
-        # Plot interpolated points
-        ax.plot(x_nodes, settlements_interpolated, '-', color='cornflowerblue')
+        # Create plot and save as png-figure
+        plot_1d_interpolation(lc, x_known, settlements_known, x_nodes,
+                              settlements_interpolated, png_targetdir='current')
 
     else:
         raise Exception(
             '''The interpolation method ("int_method") needs to specify 1D or
              2D and linear or cubic.''')
 
-    # Set limits
-    # ax.set_xlim(6800, 7350)
-    # ax.set_zlim(-22, -15)
-    # ax.set_ylim(-100, 100)
-    plt.show()
+
+def plot_1d_interpolation(load_case, x_known, settlements_known, x_nodes,
+                          settlements_interpolated, png_targetdir='current'):
+    # Create axis object for 2D plot (Visualizing 1D interpolations)
+    fig, ax = plt.subplots()
+
+    # Plot known points
+    ax.plot(x_known, settlements_known, '.',
+            color='limegreen', markersize=15, label='Known points')
+
+    # Plot interpolated points
+    ax.plot(x_nodes, settlements_interpolated, '-',
+            color='cornflowerblue', label='Interpolated points')
+
+    # Create separate array of nan-values, if there are any
+    if np.isnan(settlements_interpolated).any():
+        # Nan-values are present, extract indices where values are nan
+        idx_nan = np.where(np.isnan(settlements_interpolated))
+
+        # Create array x-values where settlement is nan
+        x_nan = x_nodes[idx_nan]
+        y_nan_temp = settlements_interpolated[idx_nan]
+        y_nan = np.nan_to_num(y_nan_temp)
+
+        # Plot all nan-values with y=0 and make them red
+        ax.plot(x_nan, y_nan, 'x', ms=2, color='red',
+                label="NaN (interpolation failed)")
+
+    # Set titles and activate legend
+    ax.set_title(f'Settlement interpolation for LC{load_case}')
+    ax.set_xlabel('Chainage [m]')
+    ax.set_ylabel('Settlement [mm]')
+    plt.legend()
+
+    # Define name for png file to save
+    png_name = f'LC{load_case}_settl_interp_plot.png'
+
+    if png_targetdir == 'current':
+        # Save figure
+        fig.savefig(png_name)
+    else:
+        # Save figure in the folder that was input
+        fig.savefig(f'{png_targetdir}\\{png_name}')
 
 
 def filter_nodes_for_Z(df, Zmax_allowable):
@@ -367,19 +464,33 @@ def filter_nodes_for_Z(df, Zmax_allowable):
 
 
 def run_analysis(master_dict, dir_lookup='current', dir_target='current',
-                 plot_results=False):
-    '''Run interpolation analysis and write .dat file in Teddy input language.
+                 plot_results=True, png_targetdir='current'):
+    '''Run interpolation analysis and write dat file in Teddy input language.
 
     Parameters
     ----------
     master_dict : dict
-        Dictionary ...
-    dir_lookup : str
-        Directory ...
-    dir_target : str
-        Directory ...
+        Dictionary storing all information about the load cases and the
+        results.
+    dir_lookup : str, optional
+        Directory where Excel file containing nodal geometry is located.
+        Defaults to current working directory.
+    dir_target : str, optional
+        Directory in which to save the generated dat files.
+        Defaults to current working directory.
     plot_results : bool, optional
-        Whether to plot the interpolated results after the analysis.
+        Whether to plot the interpolated results and save as png files
+        after the analysis. Defaults to `True`.
+    png_targetdir : str, optional
+        Directory in which to save the plotted interpolation results
+        as png files. This parameter only takes effect if `plot_results`
+        is `True`.
+        Defaults to current working directory.
+
+    Notes
+    -----
+    Current working directory will in most cases be the the directory
+    where the .sofistik (ssd) file is located.  
     '''
 
     for lc in master_dict:
@@ -411,27 +522,17 @@ def run_analysis(master_dict, dir_lookup='current', dir_target='current',
         # Check for interpolation dimension and run analysis
         if '1d' in int_method:
 
-            try:
-                # Perform 1D interpolation and store results
-                # (only X-coordinate varying)
-                f_int = interp1d(x_known, settlements_known, kind=method)
+            # Perform 1D interpolation and store results (only X-coordinate varying)
+            f_int = interp1d(x_known, settlements_known, kind=method,
+                             bounds_error=False)
 
-                # Sort X-coordinates of nodes and node numbers
-                sorted_indices = x_nodes.argsort()
-                x_nodes = x_nodes[sorted_indices]
-                node_no = node_no[sorted_indices]
+            # Sort X-coordinates of nodes and node numbers
+            sorted_indices = x_nodes.argsort()
+            x_nodes = x_nodes[sorted_indices]
+            node_no = node_no[sorted_indices]
 
-                # Extract interpolated settlement values at desired X-coords
-                settlements_interpolated = f_int(x_nodes)
-
-            except ValueError:
-                print(f'''1D interpolation couldn't be performed for LC{lc}.
-                        Check if the input X-values are encompassing all the
-                         points where interpolated is desired.
-                        E.g. if the desired points to be interpolated have
-                         X-coordinates x = (0, 100, 200), the input X-values
-                         must contain a point where X < 0 and one where X > 200
-                         (extrapolation is not allowed).''')
+            # Extract interpolated settlement values at desired X-coords
+            settlements_interpolated = f_int(x_nodes)
 
         elif '2d' in int_method:
             # Perform linear 2D interpolation (X,Y-coordinates varying)
@@ -441,8 +542,8 @@ def run_analysis(master_dict, dir_lookup='current', dir_target='current',
 
         else:
             raise Exception(
-                '''The interpolation method ("int_method") needs to specify 1D
-                 or 2D and linear or cubic.''')
+                f'''The interpolation method ("int_method") needs to specify
+                1D or 2D and linear or cubic. The input was {int_method}''')
 
         # Print status report from interpolation
         print_status_report(x_nodes, y_nodes, settlements_interpolated, lc)
@@ -459,8 +560,9 @@ def run_analysis(master_dict, dir_lookup='current', dir_target='current',
 
         # Plot results if was chosen to do so in the function call
         if plot_results:
-            plot_3D_results((x_nodes, y_nodes), node_no, lc,
-                            master_dict, settlements_interpolated)
+            plot_interpolation((x_nodes, y_nodes), node_no, lc,
+                               master_dict, settlements_interpolated,
+                               png_targetdir=png_targetdir)
 
 
 if __name__ == "__main__":
@@ -472,6 +574,7 @@ if __name__ == "__main__":
     sheet_name = 'known_settlement_values'
     skiprows = 10
 
+    # Create master dictionary for storing load case information
     load_case_dict = load_cases(file_name, sheet_name, skiprows=skiprows)
 
     # Create master dictionary with load cases
@@ -480,6 +583,4 @@ if __name__ == "__main__":
                                sheet_name='known_settlement_values')
 
     # Interpolate settlements and create dat-files
-    run_analysis(d, plot_results=False)
-
-    # FIXME Results can't be plotted as of now
+    run_analysis(d, plot_results=True)
